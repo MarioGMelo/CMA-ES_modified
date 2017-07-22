@@ -1,9 +1,10 @@
 #include <iostream>
+#include <ObjectiveFunction.h>
 
 using namespace std;
 
 int main()
 {
-    cout << "Hello world!" << endl;
-    return 0;
+    double x[2];
+    return ;
 }
