@@ -1,11 +1,11 @@
 #include "ObjectiveFunction.h"
 
-ObjectiveFunction::ObjectiveFunction()
-{
-    //ctor
-}
-
-ObjectiveFunction::~ObjectiveFunction()
-{
-    //dtor
-}
+//ObjectiveFunction::ObjectiveFunction()
+//{
+//    //ctor
+//}
+//
+//ObjectiveFunction::~ObjectiveFunction()
+//{
+//    //dtor
+//}
