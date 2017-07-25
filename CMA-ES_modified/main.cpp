@@ -1,5 +1,6 @@
 #include <iostream>
 #include <ObjectiveFunction.h>
+#include <time.h>
 
 using namespace std;
 
@@ -9,12 +10,20 @@ int main()
 
     //----- User defined input parameters (need to be edited)
     //
-    strfitnessfct = 'felli'; // name of objective/fitness function
-    N = 10; // number of objective variables/problem dimension
-    xmean = rand(N,1); // objective variables initial point
-    sigma = 0.5; // coordinate wise standard deviation (step-size)
-    stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
-    stopeval = 1e3*N^2; // stop after stopeval number of function evaluations
+    string strfitnessfct = 'felli'; // name of objective/fitness function
+    int N = 10; // number of objective variables/problem dimension
+    double xmean[N]; // objective variables initial point
+    double sigma = 0.5; // coordinate wise standard deviation (step-size)
+    double stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
+    double stopeval = 1e3*N^2; // stop after stopeval number of function evaluations
+
+    //xmean
+    double val;
+    for (int i=0; i<N; i++){
+        srand(time(NULL));
+        val = rand() % 101;
+        xmean[i] = val/100; // between 0 and 1
+    }
 
 
 
@@ -22,8 +31,8 @@ int main()
 
     //----- Strategy parameter setting: Selection
     //
-    lambda = 4+floor(3*log(N)); // population size, offspring number
-    mu = lambda/2; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
+    double lambda = 4+floor(3*log(N)); // population size, offspring number
+    double mu = lambda/2; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
 
     // muXone recombination weights
     double weights[mu];
@@ -43,7 +52,7 @@ int main()
         weights[i] /= sumWeights;
         sumOfQuad += weights[i]^2;
     }
-    mueff=sum(weights)^2/sumOfQuad; // variance-effective size of mu
+    double mueff=sum(weights)^2/sumOfQuad; // variance-effective size of mu
 
 
 
@@ -51,11 +60,11 @@ int main()
 
     //----- Strategy parameter setting: Adaptation
     //
-    cc = (4+mueff/N) / (N+4 + 2*mueff/N); // time constant for cumulation for C
-    cs = (mueff+2)/(N+mueff+5); // t-const for cumulation for sigma control
-    c1 = 2 / ((N+1.3)^2+mueff); // learning rate for rank-one update of C
-    cmu = 2 * (mueff-2+1/mueff) / ((N+2)^2+2*mueff/2); // and for rank-mu update
-    damps = 1 + 2*max(0, sqrt((mueff-1)/(N+1))-1) + cs; // damping for sigma
+    double cc = (4+mueff/N) / (N+4 + 2*mueff/N); // time constant for cumulation for C
+    double cs = (mueff+2)/(N+mueff+5); // t-const for cumulation for sigma control
+    double c1 = 2 / ((N+1.3)^2+mueff); // learning rate for rank-one update of C
+    double cmu = 2 * (mueff-2+1/mueff) / ((N+2)^2+2*mueff/2); // and for rank-mu update
+    double damps = 1 + 2*max(0, sqrt((mueff-1)/(N+1))-1) + cs; // damping for sigma
 
 
 
@@ -90,6 +99,7 @@ int main()
     // covariance matrix
     double BxD[N][N];
     double BxDTransp[N][N];
+    double C[N][N];
     int sumprod;
 
     // B*D
@@ -121,8 +131,8 @@ int main()
         }
     }
 
-    eigeneval = 0; // B and D updated at counteval == 0
-    chiN=N^0.5*(1-1/(4*N)+1/(21*N^2)); // expectation of
+    double eigeneval = 0; // B and D updated at counteval == 0
+    double chiN=N^0.5*(1-1/(4*N)+1/(21*N^2)); // expectation of
     // ||N(0,I)|| == norm(randn(N,1))
 
 
