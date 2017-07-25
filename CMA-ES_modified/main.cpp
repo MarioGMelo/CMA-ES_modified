@@ -10,7 +10,7 @@ int main()
 
     //----- User defined input parameters (need to be edited)
     //
-    string strfitnessfct = 'felli'; // name of objective/fitness function
+    char strfitnessfct[] = 'felli'; // name of objective/fitness function
     int N = 10; // number of objective variables/problem dimension
     double xmean[N]; // objective variables initial point
     double sigma = 0.5; // coordinate wise standard deviation (step-size)
