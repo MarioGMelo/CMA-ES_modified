@@ -1,6 +1,7 @@
 #include <iostream>
+#include <algorithm>
+#include <stdlib.h>
 #include <ObjectiveFunction.h>
-#include <time.h>
 
 using namespace std;
 
@@ -20,7 +21,6 @@ int main()
     //xmean
     double val;
     for (int i=0; i<N; i++){
-        srand(time(NULL));
         val = rand() % 101;
         xmean[i] = val/100; // between 0 and 1
     }
@@ -31,7 +31,7 @@ int main()
 
     //----- Strategy parameter setting: Selection
     //
-    double lambda = 4+floor(3*log(N)); // population size, offspring number
+    int lambda = 4+floor(3*log(N)); // population size, offspring number
     double mu = lambda/2; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
 
     // muXone recombination weights
@@ -100,7 +100,7 @@ int main()
     double BxD[N][N];
     double BxDTransp[N][N];
     double C[N][N];
-    int sumprod;
+    double sumprod;
 
     // B*D
     for(int l=0; l<N; l++){
@@ -138,63 +138,108 @@ int main()
 
 
 
-    //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+
     // -------------------- Generation Loop --------------------------------
+    double feval (char[] strfitnessfct, double individual[N]){
+        int N = sizeof(individual);
+        double result;
+        double auxVector[N];
+        if (sizeof(individual) < 2){
+            cout << "dimension must be greater one" << endl;
+            return 0;
+        }
+        for (int i=0; i<N; i++){
+            auxVector[i] = 1e6^(i/N-1);// condition number 1e6
+        }
 
-    counteval = 0; // the next 40 lines contain the 20 lines of interesting code
-    while counteval < stopeval
+        for(int i=0; i<N; i++){
+            result += auxVector[i]*(individual[i]^2);
+            BxD[l][c]=sumprod;
+        }
+        return result;
+    }
 
-    // Generate and evaluate lambda offspring
-    for k=1:lambda,
-    arz(:,k) = randn(N,1); // standard normally distributed vector
-    arx(:,k) = xmean + sigma * (B*D * arz(:,k)); // add mutation // Eq. 40
-    arfitness(k) = feval(strfitnessfct, arx(:,k)); // objective function call
-    counteval = counteval+1;
-    end
+    int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
+    double arz[N][lambda];// standard normally distributed vectors
+    double arx[N][lambda];// add mutation // Eq. 40
+    double arfitness[lambda];// fitness of individuals
+    double individualForTest[N];
+    while (counteval < stopeval){
+        // Generate and evaluate lambda offspring
+        for (int k=0; k<lambda; k++){
+            // standard normally distributed vector
+            for (int i=0; i<N; i++){
+                val = rand() % 101;
+                arz[i][k] = val/100; // between 0 and 1
 
-    // Sort by fitness and compute weighted mean into xmean
-    [arfitness, arindex] = sort(arfitness); // minimization
-    xmean = arx(:,arindex(1:mu))*weights; // recombination // Eq. 42
-    zmean = arz(:,arindex(1:mu))*weights; // == D^-1*B'*(xmean-xold)/sigma
+                arx[i][k] = xmean[i] + sigma * (BxD * arz[i][k]); // add mutation // Eq. 40
+                individualForTest[i] = arx[i][k];
+            }
+            /*
+            verificar strfitnessfct para disparar a função desejada
+            */
+            arfitness[k] = feval(strfitnessfct, individualForTest); // objective function call
+            counteval += 1;
+        }
 
-    // Cumulation: Update evolution paths
-    ps = (1-cs)*ps + (sqrt(cs*(2-cs)*mueff)) * (B * zmean); // Eq. 43
-    hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1);
-    pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean); // Eq. 45
 
-    // Adapt covariance matrix C
-    C = (1-c1-cmu) * C ... // regard old matrix // Eq. 47
-    + c1 * (pc*pc' ... // plus rank one update
-    + (1-hsig) * cc*(2-cc) * C) ... // minor correction
-    + cmu ... // plus rank mu update
-    * (B*D*arz(:,arindex(1:mu))) ...
-    * diag(weights) * (B*D*arz(:,arindex(1:mu)))';
 
-    // Adapt step-size sigma
-    sigma = sigma * exp((cs/damps)*(norm(ps)/chiN - 1)); // Eq. 44
 
-    // Update B and D from C
-    if counteval - eigeneval > lambda/(c1+cmu)/N/10 // to achieve O(N^2)
-    eigeneval = counteval;
-    C=triu(C)+triu(C,1)'; // enforce symmetry
-    [B,D] = eig(C); // eigen decomposition, B==normalized eigenvectors
-    D = diag(sqrt(diag(D))); // D contains standard deviations now
-    end
 
-    // Break, if fitness is good enough
-    if arfitness(1) <= stopfitness
-    break;
-    end
+        //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
+        // Sort by fitness and compute weighted mean into xmean
+        [arfitness, arindex] = sort(arfitness); // minimization
+        double auxArfitness[lambda] = arfitness;
+        int arindex[lambda];
+        sort(auxArfitness, auxArfitness + lambda);
+        int auxIdx=0;
+        for (int i=0; i<lambda; i++){
+            if(ar)
+        }
 
-    // Escape flat fitness, or better terminate?
-    if arfitness(1) == arfitness(ceil(0.7*lambda))
-    sigma = sigma * exp(0.2+cs/damps);
-    disp('warning: flat fitness, consider reformulating the objective');
-    end
+        xmean = arx(:,arindex(1:mu))*weights; // recombination // Eq. 42
+        zmean = arz(:,arindex(1:mu))*weights; // == D^-1*B'*(xmean-xold)/sigma
 
-    disp([num2str(counteval) ': ' num2str(arfitness(1))]);
+        // Cumulation: Update evolution paths
+        ps = (1-cs)*ps + (sqrt(cs*(2-cs)*mueff)) * (B * zmean); // Eq. 43
+        hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1);
+        pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean); // Eq. 45
 
-    end // while, end generation loop
+        // Adapt covariance matrix C
+        C = (1-c1-cmu) * C ... // regard old matrix // Eq. 47
+        + c1 * (pc*pc' ... // plus rank one update
+        + (1-hsig) * cc*(2-cc) * C) ... // minor correction
+        + cmu ... // plus rank mu update
+        * (B*D*arz(:,arindex(1:mu))) ...
+        * diag(weights) * (B*D*arz(:,arindex(1:mu)))';
+
+        // Adapt step-size sigma
+        sigma = sigma * exp((cs/damps)*(norm(ps)/chiN - 1)); // Eq. 44
+
+        // Update B and D from C
+        if counteval - eigeneval > lambda/(c1+cmu)/N/10 // to achieve O(N^2)
+        eigeneval = counteval;
+        C=triu(C)+triu(C,1)'; // enforce symmetry
+        [B,D] = eig(C); // eigen decomposition, B==normalized eigenvectors
+        D = diag(sqrt(diag(D))); // D contains standard deviations now
+        end
+
+        // Break, if fitness is good enough
+        if arfitness(1) <= stopfitness
+        break;
+        end
+
+        // Escape flat fitness, or better terminate?
+        if arfitness(1) == arfitness(ceil(0.7*lambda))
+        sigma = sigma * exp(0.2+cs/damps);
+        disp('warning: flat fitness, consider reformulating the objective');
+        end
+
+        disp([num2str(counteval) ': ' num2str(arfitness(1))]);
+
+    }
+
+
 
     // -------------------- Final Message ---------------------------------
 

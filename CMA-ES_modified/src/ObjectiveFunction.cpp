@@ -1,6 +1,6 @@
 #include "ObjectiveFunction.h"
 
-//ObjectiveFunction::ObjectiveFunction()
+//ObjectiveFunction::jectiveFunction()
 //{
 //    //ctor
 //}
