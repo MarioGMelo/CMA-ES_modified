@@ -1,7 +1,10 @@
 # depslib dependency file v1.0
-1501019295 source:/home/mariogomes/CMA-ES_modified/CMA-ES_modified/main.cpp
+1501172120 source:/home/mariogomes/CMA-ES_modified/CMA-ES_modified/main.cpp
 	<iostream>
+	<algorithm>
 	<stdlib.h>
+	<math.h>
+	<numeric>
 	<ObjectiveFunction.h>
 
 1500932531 /home/mariogomes/CMA-ES_modified/CMA-ES_modified/include/ObjectiveFunction.h

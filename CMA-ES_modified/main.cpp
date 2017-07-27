@@ -6,15 +6,15 @@
 //#include <Eigen/Eigenvalues>
 #include <ObjectiveFunction.h>
 
-#define MAX 20
+#define SIZEVECT(vect) (sizeof(vect)/sizeof((vect)[0]))
 
 using namespace std;
 
-double feval (char strfitnessfct[], double individual[]){
-    int idx = sizeof(individual);
-    double result;
-    double auxVector[idx];
-    if (sizeof(individual) < 2){
+float feval (char strfitnessfct[], float individual[]){
+    int idx = SIZEVECT(individual);
+    float result;
+    float auxVector[idx];
+    if (SIZEVECT(individual) < 2){
         cout << "dimension must be greater one" << endl;
         return 0.0;
     }
@@ -29,20 +29,27 @@ double feval (char strfitnessfct[], double individual[]){
     return result;
 }
 
-double euclidianNorm (double vectorA[]){
-    double norm=0;
-    int idx = sizeof(vectorA);
+float euclidianNorm (float vectorA[]){
+    float norm=0;
+    int idx = SIZEVECT(vectorA);
     for (int i=0; i<idx; i++){
         norm += pow(i,2);
     }
     return sqrt(norm);
 }
 
+void sumVector (float *vectorA, float *sumVector, int sizeVector){
+        *sumVector = 0.0;
+    for(int i=0; i<sizeVector; i++){
+        *sumVector += vectorA[i];
+    }
+}
+
 /*
-double[][] externProd (double vectorA[]){
-    double matrix[sizeof(vectorA)][sizeof(vectorA)];
-    for (int i=0; i<sizeof(vectorA); i++){
-        for (int j=0; j<sizeof(vectorA); j++){
+float[][] externProd (float vectorA[]){
+    float matrix[SIZEVECT(vectorA)][SIZEVECT(vectorA)];
+    for (int i=0; i<SIZEVECT(vectorA); i++){
+        for (int j=0; j<SIZEVECT(vectorA); j++){
             matrix[i][j] = vectorA[i]*vectorA[j];
         }
     }
@@ -50,9 +57,9 @@ double[][] externProd (double vectorA[]){
 }
 */
 
-void externProd (double* vectorA, double** matrix){
+void externProd (float* vectorA, float** matrix){
     for (int i=0; i<sizeof(vectorA); i++){
-        for (int j=0; j<sizeof(vectorA); j++){
+        for (int j=0; j<SIZEVECT(vectorA); j++){
             matrix[i][j] = vectorA[i]*vectorA[j];
         }
     }
@@ -66,16 +73,19 @@ int main()
     //
     char strfitnessfct[] = "felli"; // name of objective/fitness function
     int N = 10; // number of objective variables/problem dimension
-    double xmean[N]; // objective variables initial point
-    double sigma = 0.5; // coordinate wise standard deviation (step-size)
-    double stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
-    double stopeval = 1e3*(N^2); // stop after stopeval number of function evaluations
+    float xmean[N]; // objective variables initial point
+    float zmean[N];
+    float auxSum;
+    float sigma = 0.5; // coordinate wise standard deviation (step-size)
+    float stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
+    float stopeval = 1e3*pow(N,2); // stop after stopeval number of function evaluations
 
     //xmean
-    double val;
+    float val;
     for (int i=0; i<N; i++){
         val = rand() % 101;
-        xmean[i] = val/100; // between 0 and 1
+        val = 10.0; //PARA TESTE
+        xmean[i] = val/100.0; // between 0 and 1
     }
 
 
@@ -84,15 +94,15 @@ int main()
 
     //----- Strategy parameter setting: Selection
     //
-    int lambda = 4+floor(3*log(N)); // population size, offspring number
-    double muDouble = lambda/2; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
-    int mu = floor(muDouble); // number of parents/points for recombination
+    int lambda = 4+floor(3.0*log(N)); // population size, offspring number
+    float mufloat = lambda/2.0; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
+    int mu = floor(mufloat); // number of parents/points for recombination
 
     // muXone recombination weights
-    double weights[mu];
-    double logs[mu];
-    double oneLog;
-    oneLog = muDouble+1/2;
+    float weights[mu];
+    float logs[mu];
+    float oneLog;
+    oneLog = log(mufloat+1.0/2.0);
     for (int i=0; i<mu;i++){
         weights[i] = oneLog - log(i+1);
     }
@@ -100,13 +110,15 @@ int main()
 
 
     // normalize recombination weights array
-    double sumWeights =  accumulate(weights[0], weights[sizeof(weights)], 0);
-    double sumOfQuad = 0;
-    for (int i=0; i<sizeof(weights); i++){
+    float sumWeights;
+    sumVector(weights, &sumWeights, SIZEVECT(weights));
+    float sumOfQuad = 0.0;
+    for (int i=0; i<SIZEVECT(weights); i++){
         weights[i] /= sumWeights;
         sumOfQuad += pow(weights[i],2);
     }
-    double mueff= pow(sumWeights,2)/sumOfQuad; // variance-effective size of mu
+    sumVector(weights, &sumWeights, SIZEVECT(weights)); // sumWeights of new weights
+    float mueff= pow(sumWeights,2)/sumOfQuad; // variance-effective size of mu
 
 
 
@@ -114,11 +126,11 @@ int main()
 
     //----- Strategy parameter setting: Adaptation
     //
-    double cc = (4+mueff/N) / (N+4 + 2*mueff/N); // time constant for cumulation for C
-    double cs = (mueff+2)/(N+mueff+5); // t-const for cumulation for sigma control
-    double c1 = 2 / (pow((N+1.3),2)+mueff); // learning rate for rank-one update of C
-    double cmu = 2 * (mueff-2+1/mueff) / (pow((N+2),2)+2*mueff/2); // and for rank-mu update
-    double damps = 1 + 2*max(0.0, sqrt((mueff-1)/(N+1))-1) + cs; // damping for sigma
+    float cc = (4.0+mueff/N) / (N+4.0 + 2.0*mueff/N); // time constant for cumulation for C
+    float cs = (mueff+2)/(N+mueff+5.0); // t-const for cumulation for sigma control
+    float c1 = 2.0 / (pow((N+1.3),2)+mueff); // learning rate for rank-one update of C
+    float cmu = 2.0 * (mueff-2.0+1.0/mueff) / (pow((N+2.0),2)+2.0*mueff/2.0); // and for rank-mu update
+    float damps = 1.0 + 2.0*max(0.0, sqrt((mueff-1.0)/(N+1.0))-1.0) + cs; // damping for sigma
 
 
 
@@ -127,39 +139,39 @@ int main()
     //------ Initialize dynamic (internal) strategy parameters and constants
     //
     // evolution paths for C and sigma
-    double pc[N];
-    double ps[N];
+    float pc[N];
+    float ps[N];
     for (int i=0; i<N; i++){
-        pc[i] = 0;
-        ps[i] = 0;
+        pc[i] = 0.0;
+        ps[i] = 0.0;
     }
 
     // B defines the coordinate system
     // diagonal matrix D defines the scaling
-    double B[N][N];
-    double D[N][N];
+    float B[N][N];
+    float D[N][N];
     for (int l=0; l<N; l++){
         for (int c=0; c<N; c++){
             if (l==c){
-                B[l][c] = 1;
-                D[l][c] = 1;
+                B[l][c] = 1.0;
+                D[l][c] = 1.0;
             } else{
-                B[l][c] = 0;
-                D[l][c] = 0;
+                B[l][c] = 0.0;
+                D[l][c] = 0.0;
             }
         }
     }
 
     // covariance matrix
-    double BxD[N][N];
-    double BxDTransp[N][N];
-    double C[N][N];
-    double sumprod;
+    float BxD[N][N];
+    float BxDTransp[N][N];
+    float C[N][N];
+    float sumprod;
 
     // B*D
     for(int l=0; l<N; l++){
         for(int c=0; c<N; c++){
-            sumprod=0;
+            sumprod=0.0;
             for(int i=0; i<N; i++){
                 sumprod+=B[l][i]*D[i][c];
                 BxD[l][c]=sumprod; // B*D
@@ -177,7 +189,7 @@ int main()
     // C=(B*D)*(B*D)'
     for(int l=0; l<N; l++){
         for(int c=0; c<N; c++){
-            sumprod=0;
+            sumprod=0.0;
             for(int i=0; i<N; i++){
                 sumprod+=BxD[l][i]*BxDTransp[i][c];
             }
@@ -185,8 +197,8 @@ int main()
         }
     }
 
-    double eigeneval = 0; // B and D updated at counteval == 0
-    double chiN=pow(N,0.5)*(1-1/(4*N)+1/(21*N^2)); // expectation of
+    float eigeneval = 0.0; // B and D updated at counteval == 0
+    float chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of
     // ||N(0,I)|| == norm(randn(N,1))
 
 
@@ -196,25 +208,26 @@ int main()
     // -------------------- Generation Loop --------------------------------
 
     int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
-    double arz[N][lambda];// standard normally distributed vectors
-    double arx[N][lambda];// add mutation // Eq. 40
-    double arfitness[lambda];// fitness of individuals
-    double individualForTest[N];
+    float arz[N][lambda];// standard normally distributed vectors
+    float arx[N][lambda];// add mutation // Eq. 40
+    float arfitness[lambda];// fitness of individuals
+    float individualForTest[N];
     while (counteval < stopeval){
         // Generate and evaluate lambda offspring
-        for (int k=0; k<lambda; k++){
+        for (int i=0; i<lambda; i++){
             // standard normally distributed vector
-            for (int i=0; i<N; i++){
+            for (int j=0; j<N; j++){
                 val = rand() % 101;
-                arz[i][k] = val/100; // between 0 and 1
+                val = 10.0; //PARA TESTE
+                arz[j][i] = val/100.0; // between 0 and 1
 
-                arx[i][k] = xmean[i] + sigma * (BxD * arz[i][k]); // add mutation // Eq. 40
-                individualForTest[i] = arx[i][k];
+                arx[j][i] = xmean[j] + sigma * (BxD[i][j] * arz[j][i]); // add mutation // Eq. 40
+                individualForTest[j] = arx[j][i];
             }
             /*
             verificar strfitnessfct para disparar a função desejada
             */
-            arfitness[k] = feval(strfitnessfct, individualForTest); // objective function call
+            arfitness[i] = feval(strfitnessfct, individualForTest); // objective function call
             counteval += 1;
         }
 
@@ -224,14 +237,17 @@ int main()
 
         //----- Sort by fitness and compute weighted mean into xmean
         //
-        double auxArfitness[lambda] = arfitness;
+        float auxArfitness[lambda];
+        for (int i=0; i<SIZEVECT(arfitness); i++){
+            auxArfitness[i] = arfitness[i];
+        }
         int arindex[lambda];
         int idxArindex = 0;
         sort(auxArfitness, auxArfitness + lambda); // minimization
-        for (double fit:auxArfitness){
-            for (int i=0; i<lambda; i++){
-                if(fit == arfitness[i]){
-                    arindex[idxArindex] = i;
+        for (int i=0; i<SIZEVECT(auxArfitness); i++){
+            for (int j=0; j<lambda; j++){
+                if(auxArfitness[i] == arfitness[j]){
+                    arindex[idxArindex] = j;
                     idxArindex += 1;
                     break;
                 }
@@ -240,11 +256,11 @@ int main()
 
         // recombination // Eq. 42
         // == D^-1*B'*(xmean-xold)/sigma
-        double auxSumX;
-        double auxSumZ;
+        float auxSumX;
+        float auxSumZ;
         for (int i=0; i<N; i++){
-            auxSumX = 0;
-            auxSumZ = 0;
+            auxSumX = 0.0;
+            auxSumZ = 0.0;
             for (int j=0; j<mu; j++){
                 auxSumX += arx[i][arindex[j]]*weights[j]; // recombination // Eq. 42
                 auxSumZ += arz[i][arindex[j]]*weights[j]; // == D^-1*B'*(xmean-xold)/sigma
@@ -261,10 +277,10 @@ int main()
         //
         // ps (Eq. 43)
         // (sqrt(cs*(2-cs)*mueff)) * (B * zmean)
-        double auxValue = sqrt(cs*(2-cs)*mueff);
-        double BxZmeanxAux[N];
+        float auxValue = sqrt(cs*(2.0-cs)*mueff);
+        float BxZmeanxAux[N];
         for (int i=0; i<N; i++){
-            auxSum = 0;
+            auxSum = 0.0;
             for (int j=0; j<N; j++){
                 auxSum += B[i][j]*zmean[j]*auxValue;
             }
@@ -272,24 +288,24 @@ int main()
         }
         //
         // ps = [(1-cs)*ps] + [(sqrt(cs*(2-cs)*mueff)) * (B * zmean)]
-        for (int i=0; i<sizeof(ps); i++){
-            ps[i] = (1-cs)*ps[i];
+        for (int i=0; i<SIZEVECT(ps); i++){
+            ps[i] = (1.0-cs)*ps[i];
             ps[i] += BxZmeanxAux[i];
         }
 
         // hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1)
-        double hsig;
-        auxValue = euclidianNorm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN;
-        if (auxValue <= (1.4+2/(N+1)){
-            hsig = 1;
+        float hsig;
+        auxValue = euclidianNorm(ps)/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
+        if (auxValue <= (1.4+2/(N+1.0))){
+            hsig = 1.0;
         } else {
-            hsig = 0;
+            hsig = 0.0;
         }
 
         // pc (Eq. 45)
         // hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean)
-        auxValue = sqrt(cc*(2-cc)*mueff);
-        double BxDxZmeanxAuxxHsig[N];
+        auxValue = sqrt(cc*(2.0-cc)*mueff);
+        float BxDxZmeanxAuxxHsig[N];
         for (int i=0; i<N; i++){
             auxSum = 0;
             for (int j=0; j<N; j++){
@@ -299,8 +315,8 @@ int main()
         }
         //
         // pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean)
-        for (int i=0; i<sizeof(pc); i++){
-            pc[i] = (1-cc)*pc[i];
+        for (int i=0; i<SIZEVECT(pc); i++){
+            pc[i] = (1.0-cc)*pc[i];
             pc[i] += BxDxZmeanxAuxxHsig[i];
         }
 
@@ -322,21 +338,21 @@ int main()
         //
         // regard old matrix (Eq. 47)
         //(1-c1-cmu) * C
-        double regOldC=[N][N];
+        float regOldC[N][N];
         for (int i=0; i<N; i++){
             for (int j=0; j<N; j++){
-                regOldC[i][j] = (1-c1-cmu) * C[i][j];
+                regOldC[i][j] = (1.0-c1-cmu) * C[i][j];
             }
         }
 
         // pc*pc'
-        //double extProdPc[N][N] = externProd(pc);
-        double extProdPc[N][N];
+        //float extProdPc[N][N] = externProd(pc);
+        float **extProdPc;
         externProd(pc, extProdPc);
 
         // minor correction
-        auxValue = (1-hsig) * cc*(2-cc);
-        double minorCor[N][N];
+        auxValue = (1.0-hsig) * cc*(2.0-cc);
+        float minorCor[N][N];
         for (int i=0; i<N; i++){
             for (int j=0; j<N; j++){
                 minorCor[i][j] = auxValue * C[i][j];
@@ -344,7 +360,7 @@ int main()
         }
 
         // (pc*pc') + (minor correction)
-        double sumPcMinor[N][N];
+        float sumPcMinor[N][N];
         for (int i=0; i<N; i++){
             for (int j=0; j<N; j++){
                 sumPcMinor[i][j] = extProdPc[i][j] + minorCor[i][j];
@@ -352,7 +368,7 @@ int main()
         }
 
         // plus rank one update
-        double plusRankOneUp[N][N];
+        float plusRankOneUp[N][N];
         for (int i=0; i<N; i++){
             for (int j=0; j<N; j++){
                 plusRankOneUp[i][j] = c1 * sumPcMinor[i][j];
@@ -360,10 +376,10 @@ int main()
         }
 
         // B*D*arz(:,arindex(1:mu))
-        double BxDxArz[N][mu];
+        float BxDxArz[N][mu];
         for(int l=0; l<N; l++){
             for(int c=0; c<mu; c++){
-                sumprod=0;
+                sumprod=0.0;
                 for(int i=0; i<N; i++){
                     sumprod += BxD[l][i]*arz[i][c];
                 }
@@ -372,7 +388,7 @@ int main()
         }
 
         // cmu*(B*D*arz(:,arindex(1:mu)))*diag(weights)
-        double CmuxBxDxArzxWeig[N][mu];
+        float CmuxBxDxArzxWeig[N][mu];
         for (int i=0; i<N; i++){
             for (int j=0; j<mu; j++){
                 CmuxBxDxArzxWeig[i][j] = cmu * BxDxArz[i][j] * weights[i];
@@ -380,7 +396,7 @@ int main()
         }
 
         // (B*D*arz(:,arindex(1:mu)))'
-        double BxDxArzTransp[mu][N];
+        float BxDxArzTransp[mu][N];
         for (int i=0; i<N; i++){
             for (int j=0; j<mu; j++){
                 BxDxArzTransp[j][i] = BxDxArz[i][j];
@@ -388,10 +404,10 @@ int main()
         }
 
         // cmu * (B*D*arz(:,arindex(1:mu))) * diag(weights) * (B*D*arz(:,arindex(1:mu)))'
-        double plusRankMiUpd[N][N];
+        float plusRankMiUpd[N][N];
         for(int l=0; l<N; l++){
             for(int c=0; c<N; c++){
-                sumprod=0;
+                sumprod=0.0;
                 for(int i=0; i<mu; i++){
                     sumprod += CmuxBxDxArzxWeig[l][i]*BxDxArzTransp[i][c];
                 }
@@ -405,7 +421,7 @@ int main()
 
         //----- Adapt step-size sigma
         //
-        sigma = sigma * exp((cs/damps)*(euclidianNorm(ps)/chiN - 1)); // Eq. 44
+        sigma = sigma * exp((cs/damps)*(euclidianNorm(ps)/chiN - 1.0)); // Eq. 44
 
 
 
@@ -464,8 +480,10 @@ int main()
 
     // -------------------- Final Message ---------------------------------
 
-    disp([num2str(counteval) ': ' num2str(arfitness(1))]);
-    xmin = arx(:, arindex(1)); // Return best point of last generation.
+    //disp([num2str(counteval) ': ' num2str(arfitness(1))]);
+    //min = arx(:, arindex(1)); // Return best point of last generation.
     // Notice that xmean is expected to be even
     // better.
+
+    return 0;
 }
