@@ -10,37 +10,35 @@
 
 using namespace std;
 
-float feval (char strfitnessfct[], float individual[]){
-    int idx = SIZEVECT(individual);
+float feval (char strfitnessfct[], float individual[], int sizeIndividual){
     float result;
-    float auxVector[idx];
+    float auxVector[sizeIndividual];
     if (SIZEVECT(individual) < 2){
         cout << "dimension must be greater one" << endl;
         return 0.0;
     }
-    for (int i=0; i<idx; i++){
-        auxVector[i] = pow(1e6,(i/idx-1));// condition number 1e6
+    for (int i=0; i<sizeIndividual; i++){
+        auxVector[i] = pow(1e6,(i/sizeIndividual-1));// condition number 1e6
     }
 
-    for(int i=0; i<idx; i++){
+    for(int i=0; i<sizeIndividual; i++){
         result += auxVector[i]*(pow(individual[i],2));
         //BxD[l][c]=sumprod;
     }
     return result;
 }
 
-float euclidianNorm (float vectorA[]){
+float euclidianNorm (float vectorA[], int sizeVectorA){
     float norm=0;
-    int idx = SIZEVECT(vectorA);
-    for (int i=0; i<idx; i++){
-        norm += pow(i,2);
+    for (int i=0; i<sizeVectorA; i++){
+        norm += pow(vectorA[i],2);
     }
     return sqrt(norm);
 }
 
-void sumVector (float *vectorA, float *sumVector, int sizeVector){
+void sumVector (float *vectorA, float *sumVector, int sizeVectorA){
         *sumVector = 0.0;
-    for(int i=0; i<sizeVector; i++){
+    for(int i=0; i<sizeVectorA; i++){
         *sumVector += vectorA[i];
     }
 }
@@ -57,11 +55,14 @@ float[][] externProd (float vectorA[]){
 }
 */
 
-void externProd (float* vectorA, float** matrix){
-    for (int i=0; i<sizeof(vectorA); i++){
-        for (int j=0; j<SIZEVECT(vectorA); j++){
+void externProd (float* vectorA, float** matrix, int sizeVectorA){
+    for (int i=0; i<sizeVectorA; i++){
+        //cout << vectorA[i] << endl;
+        /*
+        for (int j=0; j<sizeVectorA; j++){
             matrix[i][j] = vectorA[i]*vectorA[j];
         }
+        */
     }
 }
 
@@ -84,7 +85,7 @@ int main()
     float val;
     for (int i=0; i<N; i++){
         val = rand() % 101;
-        val = 10.0; //PARA TESTE
+        //val = 10.0; //PARA TESTE
         xmean[i] = val/100.0; // between 0 and 1
     }
 
@@ -218,7 +219,7 @@ int main()
             // standard normally distributed vector
             for (int j=0; j<N; j++){
                 val = rand() % 101;
-                val = 10.0; //PARA TESTE
+                //val = 10.0; //PARA TESTE
                 arz[j][i] = val/100.0; // between 0 and 1
 
                 arx[j][i] = xmean[j] + sigma * (BxD[i][j] * arz[j][i]); // add mutation // Eq. 40
@@ -227,7 +228,7 @@ int main()
             /*
             verificar strfitnessfct para disparar a função desejada
             */
-            arfitness[i] = feval(strfitnessfct, individualForTest); // objective function call
+            arfitness[i] = feval(strfitnessfct, individualForTest, SIZEVECT(individualForTest)); // objective function call
             counteval += 1;
         }
 
@@ -295,7 +296,8 @@ int main()
 
         // hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1)
         float hsig;
-        auxValue = euclidianNorm(ps)/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
+        float noma = euclidianNorm(ps,SIZEVECT(ps));
+        auxValue = euclidianNorm(ps,SIZEVECT(ps))/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
         if (auxValue <= (1.4+2/(N+1.0))){
             hsig = 1.0;
         } else {
@@ -307,11 +309,12 @@ int main()
         auxValue = sqrt(cc*(2.0-cc)*mueff);
         float BxDxZmeanxAuxxHsig[N];
         for (int i=0; i<N; i++){
-            auxSum = 0;
+            auxSum = 0.0;
             for (int j=0; j<N; j++){
                 auxSum += BxD[i][j]*zmean[j]*auxValue*hsig;
             }
             BxDxZmeanxAuxxHsig[i] = auxSum;
+            //cout << BxDxZmeanxAuxxHsig[i] << endl;
         }
         //
         // pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean)
@@ -348,7 +351,7 @@ int main()
         // pc*pc'
         //float extProdPc[N][N] = externProd(pc);
         float **extProdPc;
-        externProd(pc, extProdPc);
+        externProd(pc, extProdPc, SIZEVECT(pc));
 
         // minor correction
         auxValue = (1.0-hsig) * cc*(2.0-cc);
@@ -421,7 +424,7 @@ int main()
 
         //----- Adapt step-size sigma
         //
-        sigma = sigma * exp((cs/damps)*(euclidianNorm(ps)/chiN - 1.0)); // Eq. 44
+        sigma = sigma * exp((cs/damps)*(euclidianNorm(ps,SIZEVECT(ps))/chiN - 1.0)); // Eq. 44
 
 
 
