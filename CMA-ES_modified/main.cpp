@@ -11,14 +11,16 @@
 using namespace std;
 
 float feval (char strfitnessfct[], float individual[], int sizeIndividual){
-    float result;
+    float result = 0.0;
+    float auxSize = sizeIndividual; //for float division
     float auxVector[sizeIndividual];
-    if (SIZEVECT(individual) < 2){
+    if (sizeIndividual < 2){
         cout << "dimension must be greater one" << endl;
         return 0.0;
     }
     for (int i=0; i<sizeIndividual; i++){
-        auxVector[i] = pow(1e6,(i/sizeIndividual-1));// condition number 1e6
+        //cout << i/(auxSize-1) << endl;
+        auxVector[i] = pow(1e6,(i/(auxSize-1)));// condition number 1e6
     }
 
     for(int i=0; i<sizeIndividual; i++){
@@ -43,26 +45,11 @@ void sumVector (float *vectorA, float *sumVector, int sizeVectorA){
     }
 }
 
-/*
-float[][] externProd (float vectorA[]){
-    float matrix[SIZEVECT(vectorA)][SIZEVECT(vectorA)];
-    for (int i=0; i<SIZEVECT(vectorA); i++){
-        for (int j=0; j<SIZEVECT(vectorA); j++){
-            matrix[i][j] = vectorA[i]*vectorA[j];
-        }
-    }
-    return matrix;
-}
-*/
-
 void externProd (float* vectorA, float** matrix, int sizeVectorA){
     for (int i=0; i<sizeVectorA; i++){
-        //cout << vectorA[i] << endl;
-        /*
         for (int j=0; j<sizeVectorA; j++){
             matrix[i][j] = vectorA[i]*vectorA[j];
         }
-        */
     }
 }
 
@@ -84,8 +71,8 @@ int main()
     //xmean
     float val;
     for (int i=0; i<N; i++){
-        val = rand() % 101;
-        //val = 10.0; //PARA TESTE
+        //val = rand() % 101;
+        val = 10.0; //PARA TESTE
         xmean[i] = val/100.0; // between 0 and 1
     }
 
@@ -175,8 +162,8 @@ int main()
             sumprod=0.0;
             for(int i=0; i<N; i++){
                 sumprod+=B[l][i]*D[i][c];
-                BxD[l][c]=sumprod; // B*D
             }
+            BxD[l][c]=sumprod; // B*D
         }
     }
 
@@ -218,19 +205,35 @@ int main()
         for (int i=0; i<lambda; i++){
             // standard normally distributed vector
             for (int j=0; j<N; j++){
-                val = rand() % 101;
-                //val = 10.0; //PARA TESTE
+                //val = rand() % 101;
+                val = 10.0; //PARA TESTE
                 arz[j][i] = val/100.0; // between 0 and 1
+            }
+        }
 
-                arx[j][i] = xmean[j] + sigma * (BxD[i][j] * arz[j][i]); // add mutation // Eq. 40
+        float BxDxarz[N][lambda];
+        for(int l=0; l<N; l++){
+            for(int c=0; c<lambda; c++){
+                sumprod=0.0;
+                for(int i=0; i<N; i++){
+                    sumprod+=BxD[l][i]*arz[i][c];
+                }
+                BxDxarz[l][c]=sumprod;
+            }
+        }
+
+        for (int i=0; i<lambda; i++){
+            for (int j=0; j<N; j++){
+                arx[j][i] = xmean[j] + sigma * (BxDxarz[i][j]); // add mutation // Eq. 40
                 individualForTest[j] = arx[j][i];
             }
-            /*
-            verificar strfitnessfct para disparar a função desejada
-            */
             arfitness[i] = feval(strfitnessfct, individualForTest, SIZEVECT(individualForTest)); // objective function call
             counteval += 1;
         }
+
+        /*
+        verificar strfitnessfct para disparar a função desejada
+        */
 
 
 
@@ -272,7 +275,7 @@ int main()
 
 
 
-
+        //OK ATE AQUI
 
         //----- Cumulation: Update evolution paths
         //
@@ -330,6 +333,7 @@ int main()
 
 
 
+
         //----- Adapt covariance matrix C
         //
         //C = (1-c1-cmu) * C ... // regard old matrix // Eq. 47
@@ -349,8 +353,11 @@ int main()
         }
 
         // pc*pc'
-        //float extProdPc[N][N] = externProd(pc);
         float **extProdPc;
+        extProdPc = (float **) malloc(N*sizeof(float *));
+        for (int i=0; i<N; i++){
+            extProdPc[i] = (float *) malloc(N*sizeof(float));
+        }
         externProd(pc, extProdPc, SIZEVECT(pc));
 
         // minor correction
@@ -359,6 +366,7 @@ int main()
         for (int i=0; i<N; i++){
             for (int j=0; j<N; j++){
                 minorCor[i][j] = auxValue * C[i][j];
+                //cout << minorCor[i][j] << endl;
             }
         }
 
@@ -394,7 +402,7 @@ int main()
         float CmuxBxDxArzxWeig[N][mu];
         for (int i=0; i<N; i++){
             for (int j=0; j<mu; j++){
-                CmuxBxDxArzxWeig[i][j] = cmu * BxDxArz[i][j] * weights[i];
+                CmuxBxDxArzxWeig[i][j] = cmu * BxDxArz[i][j] * weights[j];
             }
         }
 
@@ -418,6 +426,13 @@ int main()
             }
         }
 
+        // Adapt covariance matrix C
+        for (int i=0; i<N; i++){
+            for (int j=0; j<N; j++){
+                C[i][j] = regOldC[i][j] + plusRankOneUp[i][j] + plusRankMiUpd [i][j];
+            }
+        }
+
 
 
 
@@ -425,9 +440,6 @@ int main()
         //----- Adapt step-size sigma
         //
         sigma = sigma * exp((cs/damps)*(euclidianNorm(ps,SIZEVECT(ps))/chiN - 1.0)); // Eq. 44
-
-
-
 
 
         //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
