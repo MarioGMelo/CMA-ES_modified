@@ -15,6 +15,12 @@
 					<Add option="-g" />
 					<Add directory="include" />
 				</Compiler>
+				<Linker>
+					<Add library="include/lapack-3.7.1/libtmglib.a" />
+					<Add library="include/lapack-3.7.1/librefblas.a" />
+					<Add library="include/lapack-3.7.1/liblapack.a" />
+					<Add library="include/lapack-3.7.1/liblapacke.a" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/CMA-ES_modified" prefix_auto="1" extension_auto="1" />

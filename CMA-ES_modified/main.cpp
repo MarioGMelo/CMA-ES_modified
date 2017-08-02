@@ -3,8 +3,9 @@
 #include <stdlib.h>
 #include <math.h>
 #include <numeric>
-//#include <Eigen/Eigenvalues>
-#include <ObjectiveFunction.h>
+#include "/home/mariogomes/CMA-ES_modified/CMA-ES_modified/include/lapack-3.7.1/LAPACKE/include/lapacke.h"
+//#include <liblapacke>
+#include "include/ObjectiveFunction.h"
 
 #define SIZEVECT(vect) (sizeof(vect)/sizeof((vect)[0]))
 
@@ -445,24 +446,41 @@ int main()
         //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
         //----- Update B and D from C
         //
-//        if ((counteval - eigeneval) > (lambda/(c1+cmu)/N/10)){ // to achieve O(N^2)
-//            eigeneval = counteval;
-//
-//            // enforce symmetry
-//            // C=triu(C)+triu(C,1)'
-//            for (int i=0; i<N; i++){
-//                for (int j=i; j<N; j++){
-//                    C[j][i] = C[i][j];
-//                }
-//            }
-//
-//            // eigen decomposition, B==normalized eigenvectors
-//            //[B,D] = eig(C)
-//
-//
-//
-//            D = diag(sqrt(diag(D))); // D contains standard deviations now
-//        }
+        if ((counteval - eigeneval) > (lambda/(c1+cmu)/N/10)){ // to achieve O(N^2)
+            eigeneval = counteval;
+
+            // enforce symmetry
+            // C=triu(C)+triu(C,1)'
+            for (int i=0; i<N; i++){
+                for (int j=0; j<i; j++){
+                    C[i][j] = C[j][i];
+                }
+            }
+
+            // eigen decomposition, B==normalized eigenvectors
+            //[B,D] = eig(C)
+            char* jobz;
+            char* uplo;
+            int* n = &N;
+            float* a;
+            int* lda;
+            float* w;
+            float* work;
+            int* lwork;
+            int *info;
+
+
+            //LAPACKE_ssyev(matrix_layout,jobz,uplo,n,a,lda,w);
+            //LAPACK_ssyev;
+            ssyev_(jobz,uplo,n,a,lda,w,work,lwork,info);
+
+
+
+
+
+            int t4e=0;
+            //D = diag(sqrt(diag(D))); // D contains standard deviations now
+        }
 //
 //
 //
