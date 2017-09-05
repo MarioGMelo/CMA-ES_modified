@@ -1,1 +1,0 @@
-/usr/bin/c++  -g   CMakeFiles/CMA_ES_modified.dir/src/ObjectiveFunction.cpp.o CMakeFiles/CMA_ES_modified.dir/main.cpp.o  -o CMA_ES_modified 
