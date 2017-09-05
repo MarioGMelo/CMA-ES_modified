@@ -6,9 +6,6 @@
 #include "libs/Eigen3.3.4/Eigen/Core"
 #include "libs/Eigen3.3.4/Eigen/Eigen"
 #include "libs/Eigen3.3.4/Eigen/Eigenvalues"
-//#include <lapacke.h>
-//#include <liblapacke>
-
 
 #define SIZEVECT(vect) (sizeof(vect)/sizeof((vect)[0]))
 
@@ -69,9 +66,10 @@ Eigen::MatrixXf convertToEigenMatrix(float** matrix, int size)
 void updateBandD(float** matrixB, float** matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
     MatrixXcf EigenMatrixD = eigenSolver.eigenvalues().asDiagonal();
     MatrixXcf EigenMatrixB = eigenSolver.eigenvectors();
-    matrixB = (float**)EigenMatrixB.data(); //verificar o cast
-    matrixD = (float**)EigenMatrixD.data(); //verificar o cast
-    ////D = diag(sqrt(diag(D))); // D contains standard deviations now
+//    matrixB = (float**)EigenMatrixB.data(); //verificar o cast
+//    matrixD = (float**)EigenMatrixD.data(); //verificar o cast
+//    complex<float> eigenValues = eigenSolver.eigenvalues()[0];
+    //D = diag(sqrt(diag(D))); // D contains standard deviations now
     for (int i=0; i<size; i++){
 //        matrixD[i][i] = sqrtf(matrixD[i][i]);
     }
@@ -493,21 +491,6 @@ int main()
             //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
             // eigen decomposition, B==normalized eigenvectors
             //[B,D] = eig(C)
-//            char jobz;// = 'V';
-//            char uplo;// = 'U';
-//            int n;// = N;
-//            float* a;// = *C; //eigenvectors
-//            int lda;// = N;
-//            float* w; //eigenvalues
-//            float* work;
-//            int* lwork;// = N;
-//            int* info;
-//
-//            int t4e=0;
-
-            //LAPACKE_ssyev(matrix_layout,jobz,uplo,n,a,lda,w);
-            //LAPACK_ssyev;
-            //ssyev_(jobz, uplo, n, a, lda,  w );
 
             /*
              * EIGEN LIB EXAMPLE
@@ -529,6 +512,7 @@ int main()
             MatrixXf EigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
             EigenSolver<MatrixXf> es(EigenMatrixC);
             //D = diag(sqrt(diag(D))); // D contains standard deviations now
+            //PAREI AKI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             updateBandD(B,D,N,es);
         }
 
@@ -552,7 +536,7 @@ int main()
 
     // -------------------- Final Message ---------------------------------
 
-    cout << counteval << ": " << arfitness[0] << endl; //ATEH AQUI A PARTE COMENTADA ESTAH OK
+    cout << counteval << ": " << arfitness[0] << endl;
 
     /*
      * Return best point of last generation.

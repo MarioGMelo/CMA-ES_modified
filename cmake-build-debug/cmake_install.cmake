@@ -1,4 +1,4 @@
-# Install script for directory: /home/mariogomes/Documentos/CMAESc
+# Install script for directory: /home/mariogomes/CMA-ESc
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -40,5 +40,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/mariogomes/Documentos/CMAESc/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/mariogomes/CMA-ESc/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")
