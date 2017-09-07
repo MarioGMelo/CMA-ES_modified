@@ -8,6 +8,11 @@
 using namespace Eigen;
 using namespace std;
 
+/*
+ * This is a "felli" function.
+ * There should be a switch for a choice of function to be used.
+ * This information should be passed in "strfitnessfct[]"
+ */
 float feval (char strfitnessfct[], float individual[], int sizeIndividual){
     float result = 0.0;
     float auxSize = sizeIndividual; //for float division
@@ -98,9 +103,6 @@ int main()
     }
 
 
-
-
-
     //----- Strategy parameter setting: Selection
     //
     int lambda = 4+floor(3.0*log(N)); // population size, offspring number
@@ -116,8 +118,6 @@ int main()
         weights[i] = oneLog - log(i+1);
     }
 
-
-
     // normalize recombination weights array
     float sumWeights;
     sumVector(weights, &sumWeights, SIZEVECT(weights));
@@ -129,10 +129,7 @@ int main()
     sumVector(weights, &sumWeights, SIZEVECT(weights)); // sumWeights of new weights
     float mueff= pow(sumWeights,2)/sumOfQuad; // variance-effective size of mu
 
-
-
-
-
+    
     //----- Strategy parameter setting: Adaptation
     //
     float cc = (4.0+mueff/N) / (N+4.0 + 2.0*mueff/N); // time constant for cumulation for C
@@ -252,17 +249,10 @@ int main()
                 arx[j][i] = xmean[j] + sigma * (BxDxarz[i][j]); // add mutation // Eq. 40
                 individualForTest[j] = arx[j][i];
             }
+            //verificar strfitnessfct para disparar a função desejada
             arfitness[i] = feval(strfitnessfct, individualForTest, SIZEVECT(individualForTest)); // objective function call
             counteval += 1;
         }
-
-        /*
-        verificar strfitnessfct para disparar a função desejada
-        */
-
-
-
-
 
         //----- Sort by fitness and compute weighted mean into xmean
         //
@@ -296,10 +286,6 @@ int main()
             xmean[i] = auxSumX;
             zmean[i] = auxSumZ;
         }
-
-
-
-        //OK ATE AQUI
 
         //----- Cumulation: Update evolution paths
         //
@@ -349,13 +335,6 @@ int main()
             pc[i] = (1.0-cc)*pc[i];
             pc[i] += BxDxZmeanxAuxxHsig[i];
         }
-
-
-
-
-
-
-
 
 
         //----- Adapt covariance matrix C
@@ -459,13 +438,9 @@ int main()
         }
 
 
-
-
-
         //----- Adapt step-size sigma
         //
         sigma = sigma * exp((cs/damps)*(euclidianNorm(ps,SIZEVECT(ps))/chiN - 1.0)); // Eq. 44
-
 
 
         //----- Update B and D from C
@@ -481,32 +456,9 @@ int main()
                 }
             }
 
-            //PAREI AKIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIIII
-            // eigen decomposition, B==normalized eigenvectors
-            //[B,D] = eig(C)
-
-            /*
-             * EIGEN LIB EXAMPLE
-            MatrixXd A = MatrixXd::Random(6,6);
-            cout << "Here is a random 6x6 matrix, A:" << endl << A << endl << endl;
-            EigenSolver<MatrixXd> es(A);
-            cout << "The eigenvalues of A are:" << endl << es.eigenvalues() << endl;
-            cout << "The matrix of eigenvectors, V, is:" << endl << es.eigenvectors() << endl << endl;
-            complex<double> lambda = es.eigenvalues()[0];
-            cout << "Consider the first eigenvalue, lambda = " << lambda << endl;
-            VectorXcd v = es.eigenvectors().col(0);
-            cout << "If v is the corresponding eigenvector, then lambda * v = " << endl << lambda * v << endl;
-            cout << "... and A * v = " << endl << A.cast<complex<double> >() * v << endl << endl;
-            MatrixXcd D = es.eigenvalues().asDiagonal();
-            MatrixXcd V = es.eigenvectors();
-            cout << "Finally, V * D * V^(-1) = " << endl << V * D * V.inverse() << endl;
-            */
-
             MatrixXf eigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
-            EigenSolver<MatrixXf> es(eigenMatrixC);
-            //D = diag(sqrt(diag(D))); // D contains standard deviations now
-            //PAREI AKI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-            updateBandD(B,D,N,es);
+            EigenSolver<MatrixXf> eigenSolver(eigenMatrixC);
+            updateBandD(B,D,N,eigenSolver);
         }
 
         //----- Break, if fitness is good enough
@@ -526,9 +478,7 @@ int main()
     }
 
 
-
     // -------------------- Final Message ---------------------------------
-
     cout << counteval << ": " << arfitness[0] << endl;
 
     /*
@@ -541,8 +491,11 @@ int main()
     for (int i=0; i<N; i++){
         xmin[i] = arx[i][arindex[0]];
     }
+
+    //free memory
     free(C);
     free(B);
     free(D);
+
     return 0;
 }
