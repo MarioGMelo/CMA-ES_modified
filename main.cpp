@@ -1,11 +1,7 @@
 #include <iostream>
 #include <algorithm>
-#include <stdlib.h>
-#include <math.h>
-#include <numeric>
 #include "libs/Eigen3.3.4/Eigen/Core"
 #include "libs/Eigen3.3.4/Eigen/Eigen"
-#include "libs/Eigen3.3.4/Eigen/Eigenvalues"
 
 #define SIZEVECT(vect) (sizeof(vect)/sizeof((vect)[0]))
 
@@ -18,7 +14,7 @@ float feval (char strfitnessfct[], float individual[], int sizeIndividual){
     float auxVector[sizeIndividual];
     if (sizeIndividual < 2){
         cout << "dimension must be greater one" << endl;
-        return 0.0;
+        return result;
     }
     for (int i=0; i<sizeIndividual; i++){
         //cout << i/(auxSize-1) << endl;
@@ -64,14 +60,17 @@ Eigen::MatrixXf convertToEigenMatrix(float** matrix, int size)
 }
 
 void updateBandD(float** matrixB, float** matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
-    MatrixXcf EigenMatrixD = eigenSolver.eigenvalues().asDiagonal();
-    MatrixXcf EigenMatrixB = eigenSolver.eigenvectors();
-//    matrixB = (float**)EigenMatrixB.data(); //verificar o cast
-//    matrixD = (float**)EigenMatrixD.data(); //verificar o cast
-//    complex<float> eigenValues = eigenSolver.eigenvalues()[0];
-    //D = diag(sqrt(diag(D))); // D contains standard deviations now
+    MatrixXcf eigenMatrixcD = eigenSolver.eigenvalues().asDiagonal();
+    MatrixXcf eigenMatrixcB = eigenSolver.eigenvectors();
+    complex<float> complexNum;
     for (int i=0; i<size; i++){
-//        matrixD[i][i] = sqrtf(matrixD[i][i]);
+        for (int j=0; j<size; j++){
+            complexNum = eigenMatrixcB(i,j);
+            matrixB[i][j] = complexNum.real();
+            //D = diag(sqrt(diag(D))); // D contains standard deviations now
+            complexNum = eigenMatrixcD(i,j);
+            matrixD[i][j] = sqrtf(complexNum.real());
+        }
     }
 }
 
@@ -141,10 +140,6 @@ int main()
     float c1 = 2.0 / (pow((N+1.3),2)+mueff); // learning rate for rank-one update of C
     float cmu = 2.0 * (mueff-2.0+1.0/mueff) / (pow((N+2.0),2)+2.0*mueff/2.0); // and for rank-mu update
     float damps = 1.0 + 2.0*max(0.0, sqrt((mueff-1.0)/(N+1.0))-1.0) + cs; // damping for sigma
-
-
-
-
 
     //------ Initialize dynamic (internal) strategy parameters and constants
     //
@@ -220,9 +215,6 @@ int main()
     float eigeneval = 0.0; // B and D updated at counteval == 0
     float chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of
     // ||N(0,I)|| == norm(randn(N,1))
-
-
-
 
 
     // -------------------- Generation Loop --------------------------------
@@ -409,6 +401,7 @@ int main()
                 sumPcMinor[i][j] = extProdPc[i][j] + minorCor[i][j];
             }
         }
+        free(extProdPc);
 
         // plus rank one update
         float plusRankOneUp[N][N];
@@ -509,8 +502,8 @@ int main()
             cout << "Finally, V * D * V^(-1) = " << endl << V * D * V.inverse() << endl;
             */
 
-            MatrixXf EigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
-            EigenSolver<MatrixXf> es(EigenMatrixC);
+            MatrixXf eigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
+            EigenSolver<MatrixXf> es(eigenMatrixC);
             //D = diag(sqrt(diag(D))); // D contains standard deviations now
             //PAREI AKI>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
             updateBandD(B,D,N,es);
@@ -548,6 +541,8 @@ int main()
     for (int i=0; i<N; i++){
         xmin[i] = arx[i][arindex[0]];
     }
-
+    free(C);
+    free(B);
+    free(D);
     return 0;
 }
