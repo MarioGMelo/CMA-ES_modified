@@ -23,7 +23,7 @@ float feval (char strfitnessfct[], float individual[], int sizeIndividual){
     }
     for (int i=0; i<sizeIndividual; i++){
         //cout << i/(auxSize-1) << endl;
-        auxVector[i] = pow(1e6,(i/(auxSize-1)));// condition number 1e6
+        auxVector[i] = pow(1e6,(i/(auxSize-1.0)));// condition number 1e6
     }
 
     for(int i=0; i<sizeIndividual; i++){
@@ -31,6 +31,16 @@ float feval (char strfitnessfct[], float individual[], int sizeIndividual){
         //BxD[l][c]=sumprod;
     }
     return result;
+}
+
+void printMatrix (float **matrix, int sizeLine, int sizeColumn){
+    for (int i=0; i<sizeLine; i++){
+        for (int j=0; j<sizeColumn; j++){
+            cout << matrix[i][j] << "   ";
+        }
+        cout << endl;
+    }
+    cout << endl;
 }
 
 float euclidianNorm (float vectorA[], int sizeVectorA){
@@ -48,7 +58,7 @@ void sumVector (float *vectorA, float *sumVector, int sizeVectorA){
     }
 }
 
-void externProd (float* vectorA, float** matrix, int sizeVectorA){
+void externProd (float *vectorA, float **matrix, int sizeVectorA){
     for (int i=0; i<sizeVectorA; i++){
         for (int j=0; j<sizeVectorA; j++){
             matrix[i][j] = vectorA[i]*vectorA[j];
@@ -56,7 +66,7 @@ void externProd (float* vectorA, float** matrix, int sizeVectorA){
     }
 }
 
-Eigen::MatrixXf convertToEigenMatrix(float** matrix, int size)
+Eigen::MatrixXf convertToEigenMatrix(float **matrix, int size)
 {
     Eigen::MatrixXf EigenMatrix(size, size);
     for (int i = 0; i < size; ++i)
@@ -64,9 +74,12 @@ Eigen::MatrixXf convertToEigenMatrix(float** matrix, int size)
     return EigenMatrix;
 }
 
-void updateBandD(float** matrixB, float** matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
+void updateBandD(float **matrixB, float **matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
     MatrixXcf eigenMatrixcD = eigenSolver.eigenvalues().asDiagonal();
     MatrixXcf eigenMatrixcB = eigenSolver.eigenvectors();
+    cout << eigenMatrixcD << endl;
+    cout << endl;
+    cout << eigenMatrixcB << endl;
     complex<float> complexNum;
     for (int i=0; i<size; i++){
         for (int j=0; j<size; j++){
@@ -77,11 +90,18 @@ void updateBandD(float** matrixB, float** matrixD, int size, EigenSolver<MatrixX
             matrixD[i][j] = sqrtf(complexNum.real());
         }
     }
+    printMatrix(matrixD,size,size);
+    printMatrix(matrixB,size,size);
+}
+
+float randomNumber (float lowerBound, float upperBound){
+    return lowerBound + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(upperBound-lowerBound)));
 }
 
 int main()
 {
     // -------------------- Initialization --------------------------------
+    srand (static_cast <unsigned> (time(0))); // to not generate the same values
 
     //----- User defined input parameters (need to be edited)
     //
@@ -95,11 +115,12 @@ int main()
     float stopeval = 1e3*pow(N,2); // stop after stopeval number of function evaluations
 
     //xmean
-    float val;
+    float lowerBound, upperBound;
+    lowerBound = -1.0;
+    upperBound = 1.0;
     for (int i=0; i<N; i++){
-        //val = rand() % 101;
-        val = 10.0; //PARA TESTE
-        xmean[i] = val/100.0; // between 0 and 1
+        //xmean[i] = randomNumber(lowerBound, upperBound);
+        xmean[i] = 0.1; //for test
     }
 
 
@@ -129,7 +150,7 @@ int main()
     sumVector(weights, &sumWeights, SIZEVECT(weights)); // sumWeights of new weights
     float mueff= pow(sumWeights,2)/sumOfQuad; // variance-effective size of mu
 
-    
+
     //----- Strategy parameter setting: Adaptation
     //
     float cc = (4.0+mueff/N) / (N+4.0 + 2.0*mueff/N); // time constant for cumulation for C
@@ -150,8 +171,8 @@ int main()
 
     // B defines the coordinate system
     // diagonal matrix D defines the scaling
-    float** B;
-    float** D;
+    float **B;
+    float **D;
     B = (float **) malloc(N*sizeof(float *));
     D = (float **) malloc(N*sizeof(float *));
     for (int i=0; i<N; i++){
@@ -173,7 +194,7 @@ int main()
     // covariance matrix
     float BxD[N][N];
     float BxDTransp[N][N];
-    float** C;
+    float **C;
     C = (float **) malloc(N*sizeof(float *));
     for (int i=0; i<N; i++){
         C[i] = (float *) malloc(N*sizeof(float));
@@ -210,11 +231,15 @@ int main()
     }
 
     float eigeneval = 0.0; // B and D updated at counteval == 0
-    float chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of
-    // ||N(0,I)|| == norm(randn(N,1))
+    float chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of ||N(0,I)|| == norm(randn(N,1))
 
 
     // -------------------- Generation Loop --------------------------------
+    //TESTE PRINTANDO MATRIZES
+//    printMatrix(B, N, N);
+//    printMatrix(D, N, N);
+//    printMatrix(C, N, N);
+    //FIM TESTE
 
     int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
     float arz[N][lambda];// standard normally distributed vectors
@@ -227,9 +252,8 @@ int main()
         for (int i=0; i<lambda; i++){
             // standard normally distributed vector
             for (int j=0; j<N; j++){
-                //val = rand() % 101;
-                val = 10.0; //PARA TESTE
-                arz[j][i] = val/100.0; // between 0 and 1
+                //arz[j][i] = randomNumber(lowerBound, upperBound);
+                arz[j][i] = 0.1; //for test
             }
         }
 
@@ -456,7 +480,10 @@ int main()
                 }
             }
 
+            printMatrix(C,N,N);
             MatrixXf eigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
+            cout << eigenMatrixC << endl;
+            cout << endl;
             EigenSolver<MatrixXf> eigenSolver(eigenMatrixC);
             updateBandD(B,D,N,eigenSolver);
         }
@@ -487,7 +514,7 @@ int main()
      * better.
     */
     //xmin = arx(:, arindex(1));
-    float* xmin;
+    float *xmin;
     for (int i=0; i<N; i++){
         xmin[i] = arx[i][arindex[0]];
     }
