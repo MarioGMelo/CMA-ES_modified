@@ -1,5 +1,7 @@
 #include <iostream>
 #include <algorithm>
+#include <time.h>
+#include <chrono>
 #include "libs/Eigen3.3.4/Eigen/Core"
 #include "libs/Eigen3.3.4/Eigen/Eigen"
 
@@ -43,6 +45,13 @@ void printMatrix (float **matrix, int sizeLine, int sizeColumn){
     cout << endl;
 }
 
+void printVector (float *vector, int size){
+    for (int i=0; i<size; i++){
+        cout << vector[i] << endl;
+    }
+    cout << endl;
+}
+
 float euclidianNorm (float vectorA[], int sizeVectorA){
     float norm=0;
     for (int i=0; i<sizeVectorA; i++){
@@ -77,9 +86,9 @@ Eigen::MatrixXf convertToEigenMatrix(float **matrix, int size)
 void updateBandD(float **matrixB, float **matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
     MatrixXcf eigenMatrixcD = eigenSolver.eigenvalues().asDiagonal();
     MatrixXcf eigenMatrixcB = eigenSolver.eigenvectors();
-    cout << eigenMatrixcD << endl;
-    cout << endl;
-    cout << eigenMatrixcB << endl;
+//    cout << eigenMatrixcD << endl;
+//    cout << endl;
+//    cout << eigenMatrixcB << endl;
     complex<float> complexNum;
     for (int i=0; i<size; i++){
         for (int j=0; j<size; j++){
@@ -90,18 +99,29 @@ void updateBandD(float **matrixB, float **matrixD, int size, EigenSolver<MatrixX
             matrixD[i][j] = sqrtf(complexNum.real());
         }
     }
-    printMatrix(matrixD,size,size);
-    printMatrix(matrixB,size,size);
+//    printMatrix(matrixD,size,size);
+//    printMatrix(matrixB,size,size);
 }
 
-float randomNumber (float lowerBound, float upperBound){
-    return lowerBound + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(upperBound-lowerBound)));
+float randNormalNumber (float mean, float desvPad){
+//    srand (static_cast <unsigned> (time(0))); // to not generate the same values
+//    return lowerBound + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(upperBound-lowerBound)));
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator (seed);
+    std::normal_distribution<float> distribution(mean,desvPad);
+    return distribution(generator);
+}
+
+float randUniformNumber (float lowerBound, float upperBound){
+    unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+    std::default_random_engine generator (seed);
+    std::uniform_real_distribution<float> distribution(lowerBound,upperBound);
+    return distribution(generator);
 }
 
 int main()
 {
     // -------------------- Initialization --------------------------------
-    srand (static_cast <unsigned> (time(0))); // to not generate the same values
 
     //----- User defined input parameters (need to be edited)
     //
@@ -116,11 +136,11 @@ int main()
 
     //xmean
     float lowerBound, upperBound;
-    lowerBound = -1.0;
+    lowerBound = 0.0;
     upperBound = 1.0;
     for (int i=0; i<N; i++){
-        //xmean[i] = randomNumber(lowerBound, upperBound);
-        xmean[i] = 0.1; //for test
+        xmean[i] = randUniformNumber(lowerBound, upperBound);
+        //xmean[i] = 0.1; //for test
     }
 
 
@@ -247,13 +267,16 @@ int main()
     float arfitness[lambda];// fitness of individuals
     float individualForTest[N];
     int arindex[lambda];
+    float auxArfitness[lambda];
+    float distMean = 0.0;
+    float distDesv = 1.0;
     while (counteval < stopeval){
         // Generate and evaluate lambda offspring
         for (int i=0; i<lambda; i++){
             // standard normally distributed vector
             for (int j=0; j<N; j++){
-                //arz[j][i] = randomNumber(lowerBound, upperBound);
-                arz[j][i] = 0.1; //for test
+                arz[j][i] = randNormalNumber(distMean, distDesv);
+                //arz[j][i] = 0.1; //for test
             }
         }
 
@@ -280,7 +303,6 @@ int main()
 
         //----- Sort by fitness and compute weighted mean into xmean
         //
-        float auxArfitness[lambda];
         for (int i=0; i<SIZEVECT(arfitness); i++) {
             auxArfitness[i] = arfitness[i];
         }
@@ -480,33 +502,35 @@ int main()
                 }
             }
 
-            printMatrix(C,N,N);
+//            printMatrix(C,N,N);
             MatrixXf eigenMatrixC = convertToEigenMatrix(C,N); //converting C[][] to EigenMatrix
-            cout << eigenMatrixC << endl;
-            cout << endl;
+//            cout << eigenMatrixC << endl;
+//            cout << endl;
             EigenSolver<MatrixXf> eigenSolver(eigenMatrixC);
             updateBandD(B,D,N,eigenSolver);
+//            printMatrix(D,N,N);
+//            printMatrix(B,N,N);
         }
 
         //----- Break, if fitness is good enough
-        if (arfitness[0] <= stopfitness){
+        if (auxArfitness[0] <= stopfitness){
             break;
         }
 
         //----- Escape flat fitness, or better terminate?
         int flatFitness = floorf(0.7*lambda);
-        if (arfitness[0] == arfitness[flatFitness]){
+        if (auxArfitness[0] == auxArfitness[flatFitness]){
             sigma = sigma * exp(0.2+cs/damps);
             cout << "warning: flat fitness, consider reformulating the objective" << endl;
         }
 
-        cout << counteval << ": " << arfitness[0] << endl;
+        cout << counteval << ": " << auxArfitness[0] << endl;
 
     }
 
 
     // -------------------- Final Message ---------------------------------
-    cout << counteval << ": " << arfitness[0] << endl;
+    cout << counteval << ": " << auxArfitness[0] << endl;
 
     /*
      * Return best point of last generation.
@@ -518,11 +542,14 @@ int main()
     for (int i=0; i<N; i++){
         xmin[i] = arx[i][arindex[0]];
     }
+    cout << "The best individual:" << endl;
+    printVector(xmin,SIZEVECT(xmin));
 
     //free memory
     free(C);
     free(B);
     free(D);
+    free(xmin);
 
     return 0;
 }

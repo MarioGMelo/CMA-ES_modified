@@ -1,7 +1,9 @@
 file(REMOVE_RECURSE
-  "CMakeFiles/CMAESc.dir/main.cpp.o"
+  "CMakeFiles/CMAESc.dir/main.cpp.obj"
   "CMAESc.pdb"
-  "CMAESc"
+  "CMAESc.exe"
+  "CMAESc.exe.manifest"
+  "libCMAESc.dll.a"
 )
 
 # Per-language clean rules from dependency scanning.
