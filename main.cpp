@@ -53,6 +53,19 @@ void printVector (float *vector, int size){
     cout << endl;
 }
 
+void multMatrix (float **matrixA, float **matixB, float **matrixAxB, int lines, int col){
+    int sumprod;
+    for(int l=0; l<lines; l++){
+        for(int c=0; c<col; c++){
+            sumprod=0.0;
+            for(int i=0; i<col; i++){
+                sumprod+=matrixA[l][i]*matixB[i][c];
+            }
+            matrixAxB[l][c]=sumprod; // A*B
+        }
+    }
+}
+
 float euclidianNorm (float vectorA[], int sizeVectorA){
     float norm=0;
     for (int i=0; i<sizeVectorA; i++){
@@ -140,9 +153,9 @@ int main()
     lowerBound = 0.0;
     upperBound = 1.0;
     for (int i=0; i<N; i++){
-        xmean[i] = randUniformNumber(lowerBound, upperBound);
-        std::this_thread::sleep_for (std::chrono::nanoseconds(1));
-        //xmean[i] = 0.1; //for test
+//        xmean[i] = randUniformNumber(lowerBound, upperBound);
+//        std::this_thread::sleep_for (std::chrono::nanoseconds(1));
+        xmean[i] = 0.1; //for test
     }
 
 
@@ -265,7 +278,11 @@ int main()
 
     int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
     float arz[N][lambda];// standard normally distributed vectors
-    float arx[N][lambda];// add mutation // Eq. 40
+    float **arx;// add mutation // Eq. 40
+    arx = (float **) malloc(N*sizeof(float *));
+    for (int i=0; i<N; i++){
+        arx[i] = (float *) malloc(lambda*sizeof(float));
+    }
     float arfitness[lambda];// fitness of individuals
     float individualForTest[N];
     int arindex[lambda];
@@ -277,9 +294,9 @@ int main()
         for (int i=0; i<lambda; i++){
             // standard normally distributed vector
             for (int j=0; j<N; j++){
-                arz[j][i] = randNormalNumber(distMean, distDesv);
-                std::this_thread::sleep_for (std::chrono::nanoseconds(1));
-                //arz[j][i] = 0.1; //for test
+//                arz[j][i] = randNormalNumber(distMean, distDesv);
+//                std::this_thread::sleep_for (std::chrono::nanoseconds(1));
+                arz[j][i] = 0.1; //for test
             }
         }
 
@@ -325,6 +342,12 @@ int main()
         // == D^-1*B'*(xmean-xold)/sigma
         float auxSumX;
         float auxSumZ;
+
+//        cout << "ARX:" << endl;
+//        printMatrix(arx,N,N);
+//        cout << "WEIGHTS:" << endl;
+//        printVector(weights,N);
+
         for (int i=0; i<N; i++){
             auxSumX = 0.0;
             auxSumZ = 0.0;
@@ -335,6 +358,9 @@ int main()
             xmean[i] = auxSumX;
             zmean[i] = auxSumZ;
         }
+
+//        cout << "XMEAN:" << endl;
+//        printVector(xmean,N);
 
         //----- Cumulation: Update evolution paths
         //
@@ -541,7 +567,7 @@ int main()
      * better.
     */
     //xmin = arx(:, arindex(1));
-    float *xmin;
+    float xmin[N];
     for (int i=0; i<N; i++){
         xmin[i] = arx[i][arindex[0]];
     }
@@ -552,7 +578,7 @@ int main()
     free(C);
     free(B);
     free(D);
-    free(xmin);
+    free(arx);
 
     return 0;
 }
