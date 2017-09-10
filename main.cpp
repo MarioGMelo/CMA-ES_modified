@@ -1,6 +1,7 @@
 #include <iostream>
 #include <algorithm>
 #include <time.h>
+#include <thread>
 #include <chrono>
 #include "libs/Eigen3.3.4/Eigen/Core"
 #include "libs/Eigen3.3.4/Eigen/Eigen"
@@ -140,6 +141,7 @@ int main()
     upperBound = 1.0;
     for (int i=0; i<N; i++){
         xmean[i] = randUniformNumber(lowerBound, upperBound);
+        std::this_thread::sleep_for (std::chrono::nanoseconds(1));
         //xmean[i] = 0.1; //for test
     }
 
@@ -276,6 +278,7 @@ int main()
             // standard normally distributed vector
             for (int j=0; j<N; j++){
                 arz[j][i] = randNormalNumber(distMean, distDesv);
+                std::this_thread::sleep_for (std::chrono::nanoseconds(1));
                 //arz[j][i] = 0.1; //for test
             }
         }
