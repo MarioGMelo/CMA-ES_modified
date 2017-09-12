@@ -58,11 +58,38 @@ void multMatrix (float **matrixA, float **matixB, float **matrixAxB, int lines, 
     for(int l=0; l<lines; l++){
         for(int c=0; c<col; c++){
             sumprod=0.0;
-            for(int i=0; i<col; i++){
+            for(int i=0; i<lines; i++){
                 sumprod+=matrixA[l][i]*matixB[i][c];
             }
             matrixAxB[l][c]=sumprod; // A*B
         }
+    }
+}
+
+void transpMatrix (float **matrix, float **matixTransp, int lines, int col){
+    for (int l=0; l<lines; l++){
+        for (int c=0; c<col; c++){
+            matixTransp[c][l] = matrix[l][c];
+        }
+    }
+}
+
+void identityMatrix (float **matrix, int lines, int col){
+    for (int l=0; l<lines; l++){
+        for (int c=0; c<col; c++){
+            if (l==c){
+                matrix[l][c] = 1.0;
+            } else{
+                matrix[l][c] = 0.0;
+            }
+        }
+    }
+}
+
+void allocPointerOfPointer (float **matrix, int pointer1, int pointer2){
+    matrix = (float **) malloc(pointer1*sizeof(float *));
+    for (int i=0; i<pointer1; i++) {
+        matrix[i] = (float *) malloc(pointer2 * sizeof(float));
     }
 }
 
@@ -206,64 +233,32 @@ int main()
 
     // B defines the coordinate system
     // diagonal matrix D defines the scaling
+    // covariance matrix
     float **B;
     float **D;
-    B = (float **) malloc(N*sizeof(float *));
-    D = (float **) malloc(N*sizeof(float *));
-    for (int i=0; i<N; i++){
-        B[i] = (float *) malloc(N*sizeof(float));
-        D[i] = (float *) malloc(N*sizeof(float));
-    }
-    for (int l=0; l<N; l++){
-        for (int c=0; c<N; c++){
-            if (l==c){
-                B[l][c] = 1.0;
-                D[l][c] = 1.0;
-            } else{
-                B[l][c] = 0.0;
-                D[l][c] = 0.0;
-            }
-        }
-    }
-
-    // covariance matrix
-    float BxD[N][N];
-    float BxDTransp[N][N];
+    float **BxD;
+    float **BxDTransp;
     float **C;
-    C = (float **) malloc(N*sizeof(float *));
-    for (int i=0; i<N; i++){
-        C[i] = (float *) malloc(N*sizeof(float));
-    }
+    allocPointerOfPointer(B,N,N);
+    allocPointerOfPointer(D,N,N);
+    allocPointerOfPointer(BxD,N,N);
+    allocPointerOfPointer(BxDTransp,N,N);
+    allocPointerOfPointer(C,N,N);
+
+    identityMatrix(B,N,N);
+    identityMatrix(D,N,N);
+
+    // auxiliary variable
     float sumprod;
 
     // B*D
-    for(int l=0; l<N; l++){
-        for(int c=0; c<N; c++){
-            sumprod=0.0;
-            for(int i=0; i<N; i++){
-                sumprod+=B[l][i]*D[i][c];
-            }
-            BxD[l][c]=sumprod; // B*D
-        }
-    }
+    multMatrix(B,D,BxD,N,N);
 
     // (B*D)'
-    for (int l=0; l<N; l++){
-        for (int c=0; c<N; c++){
-            BxDTransp[c][l] = BxD[l][c];
-        }
-    }
+    transpMatrix(BxD,BxDTransp,N,N);
 
     // C=(B*D)*(B*D)'
-    for(int l=0; l<N; l++){
-        for(int c=0; c<N; c++){
-            sumprod=0.0;
-            for(int i=0; i<N; i++){
-                sumprod+=BxD[l][i]*BxDTransp[i][c];
-            }
-            C[l][c]=sumprod;
-        }
-    }
+    multMatrix(BxD,BxDTransp,C,N,N);
 
     float eigeneval = 0.0; // B and D updated at counteval == 0
     float chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of ||N(0,I)|| == norm(randn(N,1))
@@ -277,18 +272,31 @@ int main()
     //FIM TESTE
 
     int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
-    float arz[N][lambda];// standard normally distributed vectors
+    float **arz;// standard normally distributed vectors
     float **arx;// add mutation // Eq. 40
-    arx = (float **) malloc(N*sizeof(float *));
-    for (int i=0; i<N; i++){
-        arx[i] = (float *) malloc(lambda*sizeof(float));
-    }
+    float **BxDxarz;
+    float **BxDxArz;
+    float **CmuxBxDxArzxWeig;
+    float **BxDxArzTransp;
+    float **plusRankMiUpd;
+    float **extProdPc;
+
+    allocPointerOfPointer(arz,N,lambda);
+    allocPointerOfPointer(arx,N,lambda);
+    allocPointerOfPointer(BxDxarz,N,lambda);
+    allocPointerOfPointer(BxDxArz,N,mu);
+    allocPointerOfPointer(CmuxBxDxArzxWeig,N,mu);
+    allocPointerOfPointer(BxDxArzTransp,mu,N);
+    allocPointerOfPointer(plusRankMiUpd,N,N);
+    allocPointerOfPointer(extProdPc,N,N);
+
     float arfitness[lambda];// fitness of individuals
     float individualForTest[N];
     int arindex[lambda];
     float auxArfitness[lambda];
     float distMean = 0.0;
     float distDesv = 1.0;
+
     while (counteval < stopeval){
         // Generate and evaluate lambda offspring
         for (int i=0; i<lambda; i++){
@@ -300,16 +308,8 @@ int main()
             }
         }
 
-        float BxDxarz[N][lambda];
-        for(int l=0; l<N; l++){
-            for(int c=0; c<lambda; c++){
-                sumprod=0.0;
-                for(int i=0; i<N; i++){
-                    sumprod+=BxD[l][i]*arz[i][c];
-                }
-                BxDxarz[l][c]=sumprod;
-            }
-        }
+
+        multMatrix(BxD,arz,BxDxarz,N,lambda);
 
         for (int i=0; i<lambda; i++){
             for (int j=0; j<N; j++){
@@ -431,11 +431,6 @@ int main()
         }
 
         // pc*pc'
-        float **extProdPc;
-        extProdPc = (float **) malloc(N*sizeof(float *));
-        for (int i=0; i<N; i++){
-            extProdPc[i] = (float *) malloc(N*sizeof(float));
-        }
         externProd(pc, extProdPc, SIZEVECT(pc));
 
         // minor correction
@@ -455,7 +450,6 @@ int main()
                 sumPcMinor[i][j] = extProdPc[i][j] + minorCor[i][j];
             }
         }
-        free(extProdPc);
 
         // plus rank one update
         float plusRankOneUp[N][N];
@@ -466,19 +460,9 @@ int main()
         }
 
         // B*D*arz(:,arindex(1:mu))
-        float BxDxArz[N][mu];
-        for(int l=0; l<N; l++){
-            for(int c=0; c<mu; c++){
-                sumprod=0.0;
-                for(int i=0; i<N; i++){
-                    sumprod += BxD[l][i]*arz[i][c];
-                }
-                BxDxArz[l][c]=sumprod;
-            }
-        }
+        multMatrix(BxD,arz,BxDxArz,N,mu);
 
         // cmu*(B*D*arz(:,arindex(1:mu)))*diag(weights)
-        float CmuxBxDxArzxWeig[N][mu];
         for (int i=0; i<N; i++){
             for (int j=0; j<mu; j++){
                 CmuxBxDxArzxWeig[i][j] = cmu * BxDxArz[i][j] * weights[j];
@@ -486,15 +470,9 @@ int main()
         }
 
         // (B*D*arz(:,arindex(1:mu)))'
-        float BxDxArzTransp[mu][N];
-        for (int i=0; i<N; i++){
-            for (int j=0; j<mu; j++){
-                BxDxArzTransp[j][i] = BxDxArz[i][j];
-            }
-        }
+        transpMatrix(BxDxArz,BxDxArzTransp,N,mu);
 
         // cmu * (B*D*arz(:,arindex(1:mu))) * diag(weights) * (B*D*arz(:,arindex(1:mu)))'
-        float plusRankMiUpd[N][N];
         for(int l=0; l<N; l++){
             for(int c=0; c<N; c++){
                 sumprod=0.0;
@@ -575,10 +553,19 @@ int main()
     printVector(xmin,SIZEVECT(xmin));
 
     //free memory
-    free(C);
     free(B);
     free(D);
+    free(BxD);
+    free(BxDTransp);
+    free(C);
     free(arx);
+    free(arz);
+    free(BxDxArz);
+    free(CmuxBxDxArzxWeig);
+    free(BxDxArzTransp);
+    free(plusRankMiUpd);
+    free(extProdPc);
+    free(BxDxarz);
 
     return 0;
 }
