@@ -37,9 +37,15 @@ float feval (char strfitnessfct[], float individual[], int sizeIndividual){
     return result;
 }
 
-void printMatrix (float **matrix, int sizeLine, int sizeColumn){
-    for (int i=0; i<sizeLine; i++){
-        for (int j=0; j<sizeColumn; j++){
+/**
+ * Print Matrix in console
+ * @param matrix: obj to print
+ * @param line: lines size
+ * @param col: columns size
+ */
+void printMatrix (float **matrix, int line, int col){
+    for (int i=0; i<line; i++){
+        for (int j=0; j<col; j++){
             cout << matrix[i][j] << "   ";
         }
         cout << endl;
@@ -47,6 +53,11 @@ void printMatrix (float **matrix, int sizeLine, int sizeColumn){
     cout << endl;
 }
 
+/**
+ * Print Vector in console
+ * @param vector: obj to print
+ * @param size: vector dimension
+ */
 void printVector (float *vector, int size){
     for (int i=0; i<size; i++){
         cout << vector[i] << endl;
@@ -54,6 +65,14 @@ void printVector (float *vector, int size){
     cout << endl;
 }
 
+/**
+ * Multiply two matrices
+ * @param matrixA: input
+ * @param matixB: input
+ * @param matrixAxB: result
+ * @param lines: number of rows in matrixA
+ * @param col: number of columns in matrixB
+ */
 void multMatrix (float **matrixA, float **matixB, float **matrixAxB, int lines, int col){
     int sumprod;
     for(int l=0; l<lines; l++){
@@ -67,6 +86,13 @@ void multMatrix (float **matrixA, float **matixB, float **matrixAxB, int lines, 
     }
 }
 
+/**
+ * Transpose Matrix
+ * @param matrix: input
+ * @param matixTransp: matrix transposed
+ * @param lines: number of rows in matrix
+ * @param col: number of columns in matrix
+ */
 void transpMatrix (float **matrix, float **matixTransp, int lines, int col){
     for (int l=0; l<lines; l++){
         for (int c=0; c<col; c++){
@@ -75,6 +101,12 @@ void transpMatrix (float **matrix, float **matixTransp, int lines, int col){
     }
 }
 
+/**
+ * Create a Identity Matrix
+ * @param matrix: matrix that will be the identity
+ * @param lines: number of rows in matrix
+ * @param col: number of columns in matrix
+ */
 void identityMatrix (float **matrix, int lines, int col){
     for (int l=0; l<lines; l++){
         for (int c=0; c<col; c++){
@@ -87,6 +119,12 @@ void identityMatrix (float **matrix, int lines, int col){
     }
 }
 
+/**
+ * To Alloc Space in Memory to Pointer of Pointer (matrix)
+ * @param matrix: pointer of pointer
+ * @param pointer1: number of floats in pointer 1 (rows)
+ * @param pointer2: number of floats in pointer 2 (columns)
+ */
 void allocPointerOfPointer (float **matrix, int pointer1, int pointer2){
     matrix = (float **) malloc(pointer1*sizeof(float *));
     for (int i=0; i<pointer1; i++) {
@@ -94,29 +132,53 @@ void allocPointerOfPointer (float **matrix, int pointer1, int pointer2){
     }
 }
 
-float euclidianNorm (float vectorA[], int sizeVectorA){
+/**
+ * Euclidean Norm of a Vector
+ * @param vector: vector to calc the norm
+ * @param sizeVector: vector dimension
+ * @return
+ */
+float euclideanNorm (float vector[], int sizeVector){
     float norm=0;
-    for (int i=0; i<sizeVectorA; i++){
-        norm += pow(vectorA[i],2);
+    for (int i=0; i<sizeVector; i++){
+        norm += pow(vector[i],2);
     }
     return sqrt(norm);
 }
 
-void sumVector (float *vectorA, float *sumVector, int sizeVectorA){
+/**
+ * Sum Values in a Vector
+ * @param vector: origin vector
+ * @param sumVector: sum value
+ * @param sizeVector: vector size
+ */
+void sumVector (float *vector, float *sumVector, int sizeVector){
     *sumVector = 0.0;
-    for(int i=0; i<sizeVectorA; i++){
-        *sumVector += vectorA[i];
+    for(int i=0; i<sizeVector; i++){
+        *sumVector += vector[i];
     }
 }
 
-void externProd (float *vectorA, float **matrix, int sizeVectorA){
-    for (int i=0; i<sizeVectorA; i++){
-        for (int j=0; j<sizeVectorA; j++){
-            matrix[i][j] = vectorA[i]*vectorA[j];
+/**
+ * Extern Product of a Vector
+ * @param vector: input vector
+ * @param matrix: result of the extern product (matrix[sizeVector][sizeVector])
+ * @param sizeVector
+ */
+void externProd (float *vector, float **matrix, int sizeVector){
+    for (int i=0; i<sizeVector; i++){
+        for (int j=0; j<sizeVector; j++){
+            matrix[i][j] = vector[i]*vector[j];
         }
     }
 }
 
+/**
+ * Convert float **matrix[size][size] to float EigenMatrix[size][size]
+ * @param matrix: obj to convert
+ * @param size: matrix order
+ * @return EigenMatrix: matrix converted
+ */
 Eigen::MatrixXf convertToEigenMatrix(float **matrix, int size)
 {
     Eigen::MatrixXf EigenMatrix(size, size);
@@ -125,6 +187,13 @@ Eigen::MatrixXf convertToEigenMatrix(float **matrix, int size)
     return EigenMatrix;
 }
 
+/**
+ * Update the Matrices B and D
+ * @param matrixB
+ * @param matrixD
+ * @param size: matrices orders
+ * @param eigenSolver: obj with eigenValues and eigenVectors
+ */
 void updateBandD(float **matrixB, float **matrixD, int size, EigenSolver<MatrixXf> eigenSolver){
     MatrixXcf eigenMatrixcD = eigenSolver.eigenvalues().asDiagonal();
     MatrixXcf eigenMatrixcB = eigenSolver.eigenvectors();
@@ -145,15 +214,27 @@ void updateBandD(float **matrixB, float **matrixD, int size, EigenSolver<MatrixX
 //    printMatrix(matrixB,size,size);
 }
 
-float randNormalNumber (float mean, float desvPad){
+/**
+ * Generate One Number With the Normal Distribution
+ * @param mean: average
+ * @param stdDev: standard deviation
+ * @return float random number
+ */
+float randNormalNumber (float mean, float stdDev){
 //    srand (static_cast <unsigned> (time(0))); // to not generate the same values
 //    return lowerBound + static_cast <float> (rand()) /( static_cast <float> (RAND_MAX/(upperBound-lowerBound)));
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
-    std::normal_distribution<float> distribution(mean,desvPad);
+    std::normal_distribution<float> distribution(mean,stdDev);
     return distribution(generator);
 }
 
+/**
+ * Generate One Number With the Uniform Distribution
+ * @param lowerBound
+ * @param upperBound
+ * @return float random number
+ */
 float randUniformNumber (float lowerBound, float upperBound){
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
@@ -296,14 +377,14 @@ int main()
     int arindex[lambda];
     float auxArfitness[lambda];
     float distMean = 0.0;
-    float distDesv = 1.0;
+    float distDev = 1.0;
 
     while (counteval < stopeval){
         // Generate and evaluate lambda offspring
         for (int i=0; i<lambda; i++){
             // standard normally distributed vector
             for (int j=0; j<N; j++){
-//                arz[j][i] = randNormalNumber(distMean, distDesv);
+//                arz[j][i] = randNormalNumber(distMean, distDev);
 //                std::this_thread::sleep_for (std::chrono::nanoseconds(1));
                 arz[j][i] = 0.1; //for test
             }
@@ -385,8 +466,8 @@ int main()
 
         // hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1)
         float hsig;
-        float noma = euclidianNorm(ps,SIZEVECT(ps));
-        auxValue = euclidianNorm(ps,SIZEVECT(ps))/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
+        float noma = euclideanNorm(ps,SIZEVECT(ps));
+        auxValue = euclideanNorm(ps,SIZEVECT(ps))/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
         if (auxValue <= (1.4+2/(N+1.0))){
             hsig = 1.0;
         } else {
@@ -494,7 +575,7 @@ int main()
 
         //----- Adapt step-size sigma
         //
-        sigma = sigma * exp((cs/damps)*(euclidianNorm(ps,SIZEVECT(ps))/chiN - 1.0)); // Eq. 44
+        sigma = sigma * exp((cs/damps)*(euclideanNorm(ps,SIZEVECT(ps))/chiN - 1.0)); // Eq. 44
 
 
         //----- Update B and D from C
