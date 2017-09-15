@@ -44,8 +44,6 @@ double felliFunc (VectorXd individual){
  * @return double random number
  */
 double randNormalNumber (double mean, double stdDev){
-//    srand (static_cast <unsigned> (time(0))); // to not generate the same values
-//    return lowerBound + static_cast <double> (rand()) /( static_cast <double> (RAND_MAX/(upperBound-lowerBound)));
     unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
     std::default_random_engine generator (seed);
     std::normal_distribution<double> distribution(mean,stdDev);
@@ -75,7 +73,6 @@ int main()
     int N = 10; // number of objective variables/problem dimension
     VectorXd xmean(N); // objective variables initial point
     VectorXd zmean(N);
-    double auxSum;
     double sigma = 0.5; // coordinate wise standard deviation (step-size)
     double stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
     double stopeval = 1e3*pow(N,2); // stop after stopeval number of function evaluations
@@ -137,22 +134,11 @@ int main()
     // covariance matrix
     MatrixXd B(N,N);
     MatrixXd D(N,N);
-    //MatrixXd BxD(N,N); //VER SE EH NECESSAHRIO
     MatrixXd C(N,N);
 
     B.setIdentity();
     D.setIdentity();
 
-    // auxiliary variable
-    double sumprod;
-
-    // B*D
-    //BxD = B*D;
-
-    // (B*D)'
-    //transpMatrix(BxD,BxDTransp,N,N);
-
-    // C=(B*D)*(B*D)'
     C = B * D * (B*D).transpose();
 
     double eigeneval = 0.0; // B and D updated at counteval == 0
@@ -164,21 +150,12 @@ int main()
     int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
     MatrixXd arz(N,lambda);// standard normally distributed vectors
     MatrixXd arx(N,lambda);// add mutation // Eq. 40
-
-    //VER SE PRECISA ABAIXO
-//    double **plusRankMiUpd;
-//    double **extProdPc;
-//    plusRankMiUpd = allocPointerOfPointer(N,N);
-//    extProdPc = allocPointerOfPointer(N,N);
-
     VectorXd arfitness(lambda);// fitness of individuals
-    VectorXd individualForTest(N);
     VectorXi arindex(lambda);
     VectorXd sortArfitness(lambda);
     double distMean = 0.0;
     double distDev = 1.0;
 
-//    cout << "INICIAR WHILE: " << endl;
     while (counteval < stopeval){
 
         // Generate and evaluate lambda offspring
@@ -217,11 +194,6 @@ int main()
         double auxSumX;
         double auxSumZ;
 
-//        cout << "ARX:" << endl;
-//        printMatrix(arx,N,N);
-//        cout << "WEIGHTS:" << endl;
-//        printVector(weights,N);
-
         for (int i=0; i<N; i++){
             auxSumX = 0.0;
             auxSumZ = 0.0;
@@ -233,8 +205,6 @@ int main()
             zmean[i] = auxSumZ;
         }
 
-//        cout << "XMEAN:" << endl;
-//        printVector(xmean,N);
 
         //----- Cumulation: Update evolution paths
         ps = (1-cs)*ps + (sqrt(cs*(2-cs)*mueff)) * (B * zmean); // Eq. 43
@@ -261,15 +231,16 @@ int main()
         //* (B*D*arz(:,arindex(1:mu))) ...
         //* diag(weights) * (B*D*arz(:,arindex(1:mu)))';
         //
-        // regard old matrix (Eq. 47)
-        //(1-c1-cmu) * C
-
         MatrixXd arzMu(N,mu);
         for (int i=0; i<mu; i++){
             arzMu.col(i) = arz.col(arindex[i]);
         }
-
-        C = (1-c1-cmu) * C + c1 * (pc*pc.transpose() + (1-hsig) * cc*(2-cc) * C) + cmu * (B*D*arzMu) * weights.asDiagonal() * (B*D*arzMu).transpose();
+        C = (1-c1-cmu) * C
+            + c1 * (pc*pc.transpose()
+                    + (1-hsig) * cc*(2-cc) * C)
+            + cmu
+              * (B*D*arzMu)
+              * weights.asDiagonal() * (B*D*arzMu).transpose();
 
 
         //----- Adapt step-size sigma
@@ -284,11 +255,7 @@ int main()
 
             // enforce symmetry
             // C=triu(C)+triu(C,1)'
-            for (int i=0; i<N; i++){
-                for (int j=0; j<i; j++){
-                    C(i,j) = C(j,i);
-                }
-            }
+            C = C.selfadjointView<Upper>();
 
             EigenSolver<MatrixXd> eigenSolver(C);
             B = eigenSolver.eigenvectors().real();
@@ -316,7 +283,6 @@ int main()
         }
 
         cout << counteval << ": " << sortArfitness[0] << endl;
-
     }
 
 
@@ -329,10 +295,8 @@ int main()
      * better.
     */
     //xmin = arx(:, arindex(1));
-    VectorXd xmin(N);
-    xmin = arx.col(0);
     cout << "The best individual:" << endl;
-    cout << xmin << endl;
+    cout << arx.col(0) << endl;
 
     return 0;
 }
