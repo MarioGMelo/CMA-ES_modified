@@ -7,8 +7,6 @@
 #include "libs/Eigen3.3.4/Eigen/Core"
 #include "libs/Eigen3.3.4/Eigen/Eigen"
 
-#define SIZEVECT(vect) (sizeof(vect)/sizeof((vect)[0]))
-
 using namespace Eigen;
 using namespace std;
 
