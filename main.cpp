@@ -65,238 +65,263 @@ double randUniformNumber (double lowerBound, double upperBound){
 
 int main()
 {
-    // -------------------- Initialization --------------------------------
+    int totalTest = 100;
+    int numTest = 0;
 
-    //----- User defined input parameters (need to be edited)
-    //
-    //char strfitnessfct[] = "felli"; // name of objective/fitness function (don't used)
-    int N = 10; // number of objective variables/problem dimension
-    VectorXd xmean(N); // objective variables initial point
-    VectorXd zmean(N);
-    double sigma = 0.5; // coordinate wise standard deviation (step-size)
-    double stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
-    double stopeval = 1e3*pow(N,2); // stop after stopeval number of function evaluations
-
-    //xmean
-    double lowerBound, upperBound;
-    lowerBound = 0.0;
-    upperBound = 1.0;
-    for (int i=0; i<N; i++){
-        xmean[i] = randUniformNumber(lowerBound, upperBound);
-        std::this_thread::sleep_for (std::chrono::nanoseconds(1));
-//        xmean[i] = 0.1; //for test
-    }
+    VectorXd countEvals(totalTest);
+    VectorXd bestIndividuals(totalTest);
+    VectorXi epochs(totalTest);
 
 
-    //----- Strategy parameter setting: Selection
-    //
-    int lambda = 4+floor(3.0*log(N)); // population size, offspring number
-    double mudouble = lambda/2.0; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
-    int mu = floor(mudouble); // number of parents/points for recombination
+    while (numTest < totalTest) {
+        int epoch = 1;
+        // -------------------- Initialization --------------------------------
 
-    // muXone recombination weights
-    VectorXd weights(mu);
-    double oneLog;
-    oneLog = log(mudouble+1.0/2.0);
-    for (int i=0; i<mu;i++){
-        weights[i] = oneLog - log(i+1);
-    }
-
-    // normalize recombination weights array
-    double sumWeights = weights.sum();
-    double sumOfQuad = 0.0;
-    weights /= sumWeights;
-    for (int i=0; i<weights.size(); i++){
-        sumOfQuad += pow(weights[i],2);
-    }
-    sumWeights = weights.sum(); // sumWeights of new weights
-    double mueff= pow(sumWeights,2)/sumOfQuad; // variance-effective size of mu
-
-
-    //----- Strategy parameter setting: Adaptation
-    //
-    double cc = (4.0+mueff/N) / (N+4.0 + 2.0*mueff/N); // time constant for cumulation for C
-    double cs = (mueff+2)/(N+mueff+5.0); // t-const for cumulation for sigma control
-    double c1 = 2.0 / (pow((N+1.3),2)+mueff); // learning rate for rank-one update of C
-    double cmu = 2.0 * (mueff-2.0+1.0/mueff) / (pow((N+2.0),2)+2.0*mueff/2.0); // and for rank-mu update
-    double damps = 1.0 + 2.0*max(0.0, sqrt((mueff-1.0)/(N+1.0))-1.0) + cs; // damping for sigma
-
-    //------ Initialize dynamic (internal) strategy parameters and constants
-    //
-    // evolution paths for C and sigma
-    VectorXd pc(N);
-    VectorXd ps(N);
-    pc.setZero();
-    ps.setZero();
-
-    // B defines the coordinate system
-    // diagonal matrix D defines the scaling
-    // covariance matrix
-    MatrixXd B(N,N);
-    MatrixXd D(N,N);
-    MatrixXd C(N,N);
-
-    B.setIdentity();
-    D.setIdentity();
-
-    C = B * D * (B*D).transpose();
-
-    double eigeneval = 0.0; // B and D updated at counteval == 0
-    double chiN=pow(N,0.5)*(1.0-1.0/(4.0*N)+1.0/(21.0*pow(N,2))); // expectation of ||N(0,I)|| == norm(randn(N,1))
-
-
-    // -------------------- Generation Loop --------------------------------
-
-    int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
-    MatrixXd arz(N,lambda);// standard normally distributed vectors
-    MatrixXd arx(N,lambda);// add mutation // Eq. 40
-    VectorXd arfitness(lambda);// fitness of individuals
-    VectorXi arindex(lambda);
-    VectorXd sortArfitness(lambda);
-    double distMean = 0.0;
-    double distDev = 1.0;
-
-    while (counteval < stopeval){
-
-        // Generate and evaluate lambda offspring
-        for (int i=0; i<lambda; i++){
-            // standard normally distributed vector
-            for (int j=0; j<N; j++){
-                arz(j,i) = randNormalNumber(distMean, distDev);
-                std::this_thread::sleep_for (std::chrono::nanoseconds(1));
-//                arz[j][i] = 0.1; //for test
-            }
-        }
-
-        for (int i=0; i<lambda; i++){
-            arx.col(i) = xmean + sigma * ((B*D*arz).col(i));
-            arfitness[i] = felliFunc(arx.col(i)); // objective function call
-            counteval += 1;
-        }
-
-        //----- Sort by fitness and compute weighted mean into xmean
+        //----- User defined input parameters (need to be edited)
         //
-        for (int i=0; i<arfitness.size(); i++) {
-            sortArfitness[i] = arfitness[i];
+        //char strfitnessfct[] = "felli"; // name of objective/fitness function (don't used)
+        int N = 10; // number of objective variables/problem dimension
+        VectorXd xmean(N); // objective variables initial point
+        VectorXd zmean(N);
+        double sigma = 0.5; // coordinate wise standard deviation (step-size)
+        double stopfitness = 1e-10; // stop if fitness < stopfitness (minimization)
+        double stopeval = 1e3 * pow(N, 2); // stop after stopeval number of function evaluations
+
+        //xmean
+        double lowerBound, upperBound;
+        lowerBound = 0.0;
+        upperBound = 1.0;
+        for (int i = 0; i < N; i++) {
+            xmean[i] = randUniformNumber(lowerBound, upperBound);
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+            //        xmean[i] = 0.1; //for test
         }
-        std::sort(sortArfitness.data(), sortArfitness.data()+sortArfitness.size()); // minimization
-        for (int i=0; i<sortArfitness.size(); i++){
-            for (int j=0; j<lambda; j++){
-                if(sortArfitness[i] == arfitness[j]){
-                    arindex[i] = j;
-                    break;
+
+
+        //----- Strategy parameter setting: Selection
+        //
+        int lambda = 4 + floor(3.0 * log(N)); // population size, offspring number
+        double mudouble = lambda / 2.0; // lambda=12; mu=3; weights = ones(mu,1); would be (3_I,12)-ES
+        int mu = floor(mudouble); // number of parents/points for recombination
+
+        // muXone recombination weights
+        VectorXd weights(mu);
+        double oneLog;
+        oneLog = log(mudouble + 1.0 / 2.0);
+        for (int i = 0; i < mu; i++) {
+            weights[i] = oneLog - log(i + 1);
+        }
+
+        // normalize recombination weights array
+        double sumWeights = weights.sum();
+        double sumOfQuad = 0.0;
+        weights /= sumWeights;
+        for (int i = 0; i < weights.size(); i++) {
+            sumOfQuad += pow(weights[i], 2);
+        }
+        sumWeights = weights.sum(); // sumWeights of new weights
+        double mueff = pow(sumWeights, 2) / sumOfQuad; // variance-effective size of mu
+
+
+        //----- Strategy parameter setting: Adaptation
+        //
+        double cc = (4.0 + mueff / N) / (N + 4.0 + 2.0 * mueff / N); // time constant for cumulation for C
+        double cs = (mueff + 2) / (N + mueff + 5.0); // t-const for cumulation for sigma control
+        double c1 = 2.0 / (pow((N + 1.3), 2) + mueff); // learning rate for rank-one update of C
+        double cmu =
+                2.0 * (mueff - 2.0 + 1.0 / mueff) / (pow((N + 2.0), 2) + 2.0 * mueff / 2.0); // and for rank-mu update
+        double damps = 1.0 + 2.0 * max(0.0, sqrt((mueff - 1.0) / (N + 1.0)) - 1.0) + cs; // damping for sigma
+
+        //------ Initialize dynamic (internal) strategy parameters and constants
+        //
+        // evolution paths for C and sigma
+        VectorXd pc(N);
+        VectorXd ps(N);
+        pc.setZero();
+        ps.setZero();
+
+        // B defines the coordinate system
+        // diagonal matrix D defines the scaling
+        // covariance matrix
+        MatrixXd B(N, N);
+        MatrixXd D(N, N);
+        MatrixXd C(N, N);
+
+        B.setIdentity();
+        D.setIdentity();
+
+        C = B * D * (B * D).transpose();
+
+        double eigeneval = 0.0; // B and D updated at counteval == 0
+        double chiN = pow(N, 0.5) * (1.0 - 1.0 / (4.0 * N) +
+                                     1.0 / (21.0 * pow(N, 2))); // expectation of ||N(0,I)|| == norm(randn(N,1))
+
+
+        // -------------------- Generation Loop --------------------------------
+
+        int counteval = 0; // the next 40 lines contain the 20 lines of interesting code
+        MatrixXd arz(N, lambda);// standard normally distributed vectors
+        MatrixXd arx(N, lambda);// add mutation // Eq. 40
+        VectorXd arfitness(lambda);// fitness of individuals
+        VectorXi arindex(lambda);
+        VectorXd sortArfitness(lambda);
+        double distMean = 0.0;
+        double distDev = 1.0;
+
+        while (counteval < stopeval) {
+
+            // Generate and evaluate lambda offspring
+            for (int i = 0; i < lambda; i++) {
+                // standard normally distributed vector
+                for (int j = 0; j < N; j++) {
+                    arz(j, i) = randNormalNumber(distMean, distDev);
+                    std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+                    //                arz[j][i] = 0.1; //for test
                 }
             }
-        }
 
-        // recombination // Eq. 42
-        // == D^-1*B'*(xmean-xold)/sigma
-        double auxSumX;
-        double auxSumZ;
-
-        for (int i=0; i<N; i++){
-            auxSumX = 0.0;
-            auxSumZ = 0.0;
-            for (int j=0; j<mu; j++){
-                auxSumX += arx(i,arindex[j])*weights[j]; // recombination // Eq. 42
-                auxSumZ += arz(i,arindex[j])*weights[j]; // == D^-1*B'*(xmean-xold)/sigma
+            for (int i = 0; i < lambda; i++) {
+                arx.col(i) = xmean + sigma * ((B * D * arz).col(i));
+                arfitness[i] = felliFunc(arx.col(i)); // objective function call
+                counteval += 1;
             }
-            xmean[i] = auxSumX;
-            zmean[i] = auxSumZ;
-        }
 
-
-        //----- Cumulation: Update evolution paths
-        ps = (1-cs)*ps + (sqrt(cs*(2-cs)*mueff)) * (B * zmean); // Eq. 43
-
-        // hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1)
-        double hsig;
-        double auxValue;
-        auxValue = ps.norm()/sqrt(1.0-pow((1.0-cs),(2.0*counteval/lambda)))/chiN;
-        if (auxValue < (1.4+2/(N+1.0))){
-            hsig = 1.0;
-        } else {
-            hsig = 0.0;
-        }
-
-        pc = (1-cc)*pc + hsig * sqrt(cc*(2-cc)*mueff) * (B*D*zmean); // Eq. 45
-
-
-        //----- Adapt covariance matrix C
-        //
-        //C = (1-c1-cmu) * C ... // regard old matrix // Eq. 47
-        //+ c1 * (pc*pc' ... // plus rank one update
-        //+ (1-hsig) * cc*(2-cc) * C) ... // minor correction
-        //+ cmu ... // plus rank mu update
-        //* (B*D*arz(:,arindex(1:mu))) ...
-        //* diag(weights) * (B*D*arz(:,arindex(1:mu)))';
-        //
-        MatrixXd arzMu(N,mu);
-        for (int i=0; i<mu; i++){
-            arzMu.col(i) = arz.col(arindex[i]);
-        }
-        C = (1-c1-cmu) * C
-            + c1 * (pc*pc.transpose()
-                    + (1-hsig) * cc*(2-cc) * C)
-            + cmu
-              * (B*D*arzMu)
-              * weights.asDiagonal() * (B*D*arzMu).transpose();
-
-
-        //----- Adapt step-size sigma
-        //
-        sigma = sigma * exp((cs/damps)*(ps.norm()/chiN - 1.0)); // Eq. 44
-
-
-        //----- Update B and D from C
-        //
-        if ((counteval - eigeneval) > (lambda/(c1+cmu)/N/10)){ // to achieve O(N^2)
-            eigeneval = counteval;
-
-            // enforce symmetry
-            // C=triu(C)+triu(C,1)'
-            C = C.selfadjointView<Upper>();
-
-            EigenSolver<MatrixXd> eigenSolver(C);
-            B = eigenSolver.eigenvectors().real();
-            D = eigenSolver.eigenvalues().real().asDiagonal();
-            for(int i=0; i< D.rows(); i++){
-                for (int j=0; j<D.cols(); j++){
-                    if (i==j){
-                        D(i,j) = sqrt(D(i,j));
+            //----- Sort by fitness and compute weighted mean into xmean
+            //
+            for (int i = 0; i < arfitness.size(); i++) {
+                sortArfitness[i] = arfitness[i];
+            }
+            std::sort(sortArfitness.data(), sortArfitness.data() + sortArfitness.size()); // minimization
+            for (int i = 0; i < sortArfitness.size(); i++) {
+                for (int j = 0; j < lambda; j++) {
+                    if (sortArfitness[i] == arfitness[j]) {
+                        arindex[i] = j;
+                        break;
                     }
                 }
             }
 
+            // recombination // Eq. 42
+            // == D^-1*B'*(xmean-xold)/sigma
+            double auxSumX;
+            double auxSumZ;
+
+            for (int i = 0; i < N; i++) {
+                auxSumX = 0.0;
+                auxSumZ = 0.0;
+                for (int j = 0; j < mu; j++) {
+                    auxSumX += arx(i, arindex[j]) * weights[j]; // recombination // Eq. 42
+                    auxSumZ += arz(i, arindex[j]) * weights[j]; // == D^-1*B'*(xmean-xold)/sigma
+                }
+                xmean[i] = auxSumX;
+                zmean[i] = auxSumZ;
+            }
+
+
+            //----- Cumulation: Update evolution paths
+            ps = (1 - cs) * ps + (sqrt(cs * (2 - cs) * mueff)) * (B * zmean); // Eq. 43
+
+            // hsig = norm(ps)/sqrt(1-(1-cs)^(2*counteval/lambda))/chiN < 1.4+2/(N+1)
+            double hsig;
+            double auxValue;
+            auxValue = ps.norm() / sqrt(1.0 - pow((1.0 - cs), (2.0 * counteval / lambda))) / chiN;
+            if (auxValue < (1.4 + 2 / (N + 1.0))) {
+                hsig = 1.0;
+            } else {
+                hsig = 0.0;
+            }
+
+            pc = (1 - cc) * pc + hsig * sqrt(cc * (2 - cc) * mueff) * (B * D * zmean); // Eq. 45
+
+
+            //----- Adapt covariance matrix C
+            //
+            //C = (1-c1-cmu) * C ... // regard old matrix // Eq. 47
+            //+ c1 * (pc*pc' ... // plus rank one update
+            //+ (1-hsig) * cc*(2-cc) * C) ... // minor correction
+            //+ cmu ... // plus rank mu update
+            //* (B*D*arz(:,arindex(1:mu))) ...
+            //* diag(weights) * (B*D*arz(:,arindex(1:mu)))';
+            //
+            MatrixXd arzMu(N, mu);
+            for (int i = 0; i < mu; i++) {
+                arzMu.col(i) = arz.col(arindex[i]);
+            }
+            C = (1 - c1 - cmu) * C
+                + c1 * (pc * pc.transpose()
+                        + (1 - hsig) * cc * (2 - cc) * C)
+                + cmu
+                  * (B * D * arzMu)
+                  * weights.asDiagonal() * (B * D * arzMu).transpose();
+
+
+            //----- Adapt step-size sigma
+            //
+            sigma = sigma * exp((cs / damps) * (ps.norm() / chiN - 1.0)); // Eq. 44
+
+
+            //----- Update B and D from C
+            //
+            if ((counteval - eigeneval) > (lambda / (c1 + cmu) / N / 10)) { // to achieve O(N^2)
+                eigeneval = counteval;
+
+                // enforce symmetry
+                // C=triu(C)+triu(C,1)'
+                C = C.selfadjointView<Upper>();
+
+                EigenSolver<MatrixXd> eigenSolver(C);
+                B = eigenSolver.eigenvectors().real();
+                D = eigenSolver.eigenvalues().real().asDiagonal();
+                for (int i = 0; i < D.rows(); i++) {
+                    for (int j = 0; j < D.cols(); j++) {
+                        if (i == j) {
+                            D(i, j) = sqrt(D(i, j));
+                        }
+                    }
+                }
+
+            }
+
+            //----- Break, if fitness is good enough
+            if (sortArfitness[0] <= stopfitness) {
+                break;
+            }
+
+            //----- Escape flat fitness, or better terminate?
+            int flatFitness = floorf(0.7 * lambda);
+            if (sortArfitness[0] == sortArfitness[flatFitness]) {
+                sigma = sigma * exp(0.2 + cs / damps);
+                cout << "warning: flat fitness, consider reformulating the objective" << endl;
+            }
+
+            //cout << counteval << ": " << sortArfitness[0] << endl;
+            epoch++;
         }
 
-        //----- Break, if fitness is good enough
-        if (sortArfitness[0] <= stopfitness){
-            break;
-        }
 
-        //----- Escape flat fitness, or better terminate?
-        int flatFitness = floorf(0.7*lambda);
-        if (sortArfitness[0] == sortArfitness[flatFitness]){
-            sigma = sigma * exp(0.2+cs/damps);
-            cout << "warning: flat fitness, consider reformulating the objective" << endl;
-        }
+        // -------------------- Final Message ---------------------------------
+        //cout << counteval << ": " << sortArfitness[0] << endl;
+        //cout << sortArfitness[0] << endl;
 
-        cout << counteval << ": " << sortArfitness[0] << endl;
+        countEvals[numTest] = counteval;
+        bestIndividuals[numTest] = sortArfitness[0];
+        epochs[numTest] = epoch;
+
+        /*
+         * Return best point of last generation.
+         * Notice that xmean is expected to be even
+         * better.
+        */
+        //xmin = arx(:, arindex(1));
+        //cout << "The best individual:" << endl;
+        //cout << arx.col(0) << endl;
+
+        numTest++;
     }
 
-
-    // -------------------- Final Message ---------------------------------
-    cout << counteval << ": " << sortArfitness[0] << endl;
-
-    /*
-     * Return best point of last generation.
-     * Notice that xmean is expected to be even
-     * better.
-    */
-    //xmin = arx(:, arindex(1));
-    cout << "The best individual:" << endl;
-    cout << arx.col(0) << endl;
+    cout << "Amount of function evaluation: \n" << countEvals << "\n" << endl;
+    cout << "Best Individuals: \n" << bestIndividuals << "\n" << endl;
+    cout << "Epochs until converge: \n" << epochs << "\n" << endl;
 
     return 0;
 }
